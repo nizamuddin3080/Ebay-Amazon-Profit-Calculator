@@ -1,0 +1,547 @@
+/**
+ * eBay to Amazon Profit Calculator - Encapsulated Stylesheet
+ * Strictly scoped for injection inside Shadow DOM.
+ */
+
+:host {
+  all: initial;
+  display: block;
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 2147483647; /* Maximum z-index to stay above eBay headers */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  color: #F8FAFC;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* CSS Variables */
+.eapc-wrapper {
+  --eapc-bg-primary: #0F172A;
+  --eapc-bg-surface: #1E293B;
+  --eapc-bg-hover: #2D3748;
+  --eapc-border: #334155;
+  --eapc-border-focus: #3B82F6;
+  --eapc-text-primary: #F8FAFC;
+  --eapc-text-muted: #94A3B8;
+  --eapc-text-faint: #64748B;
+  --eapc-accent-profit: #10B981;
+  --eapc-accent-blue: #3B82F6;
+  --eapc-accent-amber: #F59E0B;
+  --eapc-accent-rose: #EF4444;
+
+  font-size: 13px;
+  color: var(--eapc-text-primary);
+}
+
+/* ==========================================================================
+   Main Calculator Container
+   ========================================================================== */
+.eapc-container {
+  width: 320px;
+  background-color: var(--eapc-bg-primary);
+  border: 1px solid var(--eapc-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  user-select: none;
+}
+
+.eapc-container.eapc-dragging {
+  opacity: 0.95;
+  box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.6);
+  cursor: grabbing !important;
+}
+
+/* ==========================================================================
+   Header Bar & Controls
+   ========================================================================== */
+.eapc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: var(--eapc-bg-surface);
+  border-bottom: 1px solid var(--eapc-border);
+  cursor: grab;
+}
+
+.eapc-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eapc-drag-handle {
+  color: var(--eapc-text-faint);
+  font-size: 14px;
+  letter-spacing: -1px;
+}
+
+.eapc-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--eapc-text-muted);
+}
+
+.eapc-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.eapc-btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--eapc-text-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.eapc-btn-icon:hover {
+  background-color: var(--eapc-bg-hover);
+  color: var(--eapc-text-primary);
+}
+
+/* ==========================================================================
+   Section 1: Product Information
+   ========================================================================== */
+.eapc-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--eapc-border);
+}
+
+.eapc-product-title {
+  font-size: 12px;
+  color: var(--eapc-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 10px;
+}
+
+.eapc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.eapc-row:last-child {
+  margin-bottom: 0;
+}
+
+.eapc-label {
+  font-size: 12px;
+  color: var(--eapc-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.eapc-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eapc-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eapc-currency-prefix {
+  position: absolute;
+  left: 8px;
+  font-size: 12px;
+  color: var(--eapc-text-faint);
+  pointer-events: none;
+}
+
+.eapc-input {
+  width: 84px;
+  padding: 4px 6px 4px 18px;
+  background-color: var(--eapc-bg-surface);
+  border: 1px solid var(--eapc-border);
+  border-radius: 6px;
+  color: var(--eapc-text-primary);
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eapc-input:focus {
+  border-color: var(--eapc-border-focus);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.eapc-input.eapc-input-amber {
+  border-color: var(--eapc-accent-amber);
+}
+
+.eapc-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+}
+
+.eapc-badge-auto {
+  background-color: rgba(148, 163, 184, 0.15);
+  color: var(--eapc-text-muted);
+}
+
+.eapc-badge-manual {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--eapc-accent-amber);
+}
+
+.eapc-badge-free {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: var(--eapc-accent-profit);
+}
+
+.eapc-badge-unknown {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--eapc-accent-amber);
+}
+
+.eapc-btn-redetect {
+  background: transparent;
+  border: none;
+  color: var(--eapc-accent-amber);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.eapc-btn-redetect:hover {
+  transform: rotate(-45deg);
+}
+
+.eapc-total-cost-val {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--eapc-text-primary);
+}
+
+/* ==========================================================================
+   Section 2: Settings Quick View
+   ========================================================================== */
+.eapc-settings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: rgba(30, 41, 59, 0.5);
+  border-bottom: 1px solid var(--eapc-border);
+  font-size: 10px;
+  color: var(--eapc-text-muted);
+  cursor: pointer;
+}
+
+.eapc-settings-bar:hover {
+  background-color: var(--eapc-bg-hover);
+  color: var(--eapc-text-primary);
+}
+
+/* ==========================================================================
+   Warning / Paused Banner
+   ========================================================================== */
+.eapc-banner-paused {
+  background-color: rgba(245, 158, 11, 0.15);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--eapc-accent-amber);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eapc-banner-error {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--eapc-accent-rose);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   Section 3: Amazon Selling Price Cards
+   ========================================================================== */
+.eapc-price-card {
+  background-color: var(--eapc-bg-surface);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--eapc-border);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.eapc-price-card:last-child {
+  margin-bottom: 0;
+}
+
+.eapc-price-card-primary {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, var(--eapc-bg-surface) 100%);
+}
+
+.eapc-price-card-secondary {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, var(--eapc-bg-surface) 100%);
+}
+
+.eapc-card-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.eapc-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--eapc-text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.eapc-card-sublabel {
+  font-size: 9px;
+  color: var(--eapc-text-faint);
+}
+
+.eapc-card-price {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--eapc-text-primary);
+}
+
+.eapc-card-price.eapc-text-profit {
+  color: var(--eapc-accent-profit);
+}
+
+.eapc-card-price.eapc-text-blue {
+  color: var(--eapc-accent-blue);
+}
+
+.eapc-btn-copy-card {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--eapc-border);
+  color: var(--eapc-text-primary);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.eapc-btn-copy-card:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--eapc-text-muted);
+}
+
+.eapc-btn-copy-card:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Section 4: Profit Summary Grid
+   ========================================================================== */
+.eapc-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background-color: rgba(30, 41, 59, 0.4);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--eapc-border);
+}
+
+.eapc-summary-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.eapc-summary-label {
+  font-size: 10px;
+  color: var(--eapc-text-muted);
+  margin-bottom: 2px;
+}
+
+.eapc-summary-val {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--eapc-text-primary);
+}
+
+.eapc-summary-val.eapc-text-profit {
+  color: var(--eapc-accent-profit);
+}
+
+.eapc-summary-val.eapc-text-rose {
+  color: var(--eapc-accent-rose);
+}
+
+/* ==========================================================================
+   Section 5: Action Buttons
+   ========================================================================== */
+.eapc-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.eapc-btn-action {
+  flex: 1;
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.eapc-btn-action:active {
+  transform: scale(0.98);
+}
+
+.eapc-btn-primary {
+  background-color: var(--eapc-accent-profit);
+  color: #042f2e;
+}
+
+.eapc-btn-primary:hover {
+  background-color: #34d399;
+}
+
+.eapc-btn-secondary {
+  background-color: var(--eapc-bg-surface);
+  border: 1px solid var(--eapc-border);
+  color: var(--eapc-text-primary);
+}
+
+.eapc-btn-secondary:hover {
+  background-color: var(--eapc-bg-hover);
+}
+
+/* ==========================================================================
+   Toast Notification Overlay
+   ========================================================================== */
+.eapc-toast {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.eapc-toast.eapc-toast-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.eapc-toast.eapc-toast-success {
+  background-color: var(--eapc-accent-profit);
+  color: #042f2e;
+}
+
+.eapc-toast.eapc-toast-error {
+  background-color: var(--eapc-accent-rose);
+  color: #fff;
+}
+
+/* ==========================================================================
+   Minimized Pill State
+   ========================================================================== */
+.eapc-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background-color: var(--eapc-bg-primary);
+  border: 1px solid var(--eapc-border);
+  border-radius: 9999px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+}
+
+.eapc-pill:hover {
+  transform: scale(1.02);
+  background-color: var(--eapc-bg-surface);
+}
+
+.eapc-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--eapc-accent-profit);
+}
+
+.eapc-pill-text {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--eapc-text-primary);
+}
+
+.eapc-pill-expand {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--eapc-text-muted);
+  text-transform: uppercase;
+}

@@ -5,7 +5,7 @@
 - [ ] **Phase 1: Project Foundation** (5 Tasks)
 - [x] **Phase 2: Calculation Engine** (8 Tasks - Completed)
 - [x] **Phase 3: eBay Extraction Engine** (9 Tasks - Completed)
-- [ ] **Phase 4: Calculator UI & Shadow DOM** (6 Tasks)
+- [x] **Phase 4: Calculator UI & Shadow DOM** (6 Tasks - Completed)
 - [ ] **Phase 5: Settings & Storage System** (7 Tasks)
 - [ ] **Phase 6: Integration & Dynamic Observers** (5 Tasks)
 - [ ] **Phase 7: Testing & Quality Assurance** (8 Tasks)
@@ -186,42 +186,42 @@
 - **Priority:** Critical
 - **Dependencies:** TASK-1.2
 - **Acceptance Criteria:** Zero style leakage from or into the eBay host document.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-4.2: Floating Calculator Markup & Layout
 - **Description:** Build HTML template containing Header, Product Info, Settings Quick View, Price Cards, Profit Summary, Action Buttons, and Paused Banner.
 - **Priority:** High
 - **Dependencies:** TASK-4.1
 - **Acceptance Criteria:** Markup matches `design.md` specifications exactly.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-4.3: Viewport Dragging & Boundary Constraints
 - **Description:** Implement pointer-based dragging on header handle, constraining coordinates inside visible window.
 - **Priority:** Medium
 - **Dependencies:** TASK-4.2
 - **Acceptance Criteria:** Calculator moves smoothly without lag and cannot be dragged off-screen.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-4.4: Minimized Pill State & Toggle Animation
 - **Description:** Implement toggle logic collapsing the full calculator into compact pill showing live Amazon Price and Profit.
 - **Priority:** Medium
 - **Dependencies:** TASK-4.2
 - **Acceptance Criteria:** Clean transition between expanded and minimized states with state persistence.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-4.5: Dual Independent Manual Input Controls & Re-Detect Actions
 - **Description:** Connect price and shipping inputs to independent override states (`priceOverride`, `shippingOverride`) with `[MANUAL]` badges and `[↺]` Re-detect triggers.
 - **Priority:** High
 - **Dependencies:** TASK-4.2
 - **Acceptance Criteria:** Typing a value locks only that field; variation updates preserve manual input while updating the other field.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-4.6: Robust Clipboard Copy & Error Feedback
 - **Description:** Implement clipboard write functionality on both price cards with `navigator.clipboard.writeText`, fallback `execCommand`, emerald success toast, and rose error toast on failure.
 - **Priority:** High
 - **Dependencies:** TASK-4.2
 - **Acceptance Criteria:** Copies exact formatted price; displays confirmation toast only upon verified success; displays error toast if copy fails.
-- **Status:** Pending
+- **Status:** Completed
 
 ---
 
