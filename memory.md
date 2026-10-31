@@ -111,8 +111,8 @@ $$\text{Return on Investment } (\text{ROI}) = \left(\frac{\Pi}{C}\right) \times 
 | Phase | Description | Status | Target Completion |
 | :--- | :--- | :---: | :---: |
 | **Phase 1** | Architecture, Planning & Documentation | **COMPLETED** | 2026-11-01 |
-| **Phase 2** | Pure Calculation Engine & Unit Tests | Pending | Phase 2 Start |
-| **Phase 3** | Multi-Tiered eBay Extraction Engine | Pending | Phase 2 |
+| **Phase 2** | Pure Calculation Engine & Unit Tests | **COMPLETED** | 2026-11-01 |
+| **Phase 3** | Multi-Tiered eBay Extraction Engine | Pending | Phase 3 |
 | **Phase 4** | Floating Calculator UI & Shadow DOM | Pending | Phase 2 |
 | **Phase 5** | Settings Page & Storage System | Pending | Phase 2 |
 | **Phase 6** | End-to-End Integration & Dynamic Observers | Pending | Phase 2 |

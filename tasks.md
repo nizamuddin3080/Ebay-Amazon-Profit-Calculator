@@ -3,7 +3,7 @@
 ## Phase Status Summary
 
 - [ ] **Phase 1: Project Foundation** (5 Tasks)
-- [ ] **Phase 2: Calculation Engine** (8 Tasks)
+- [x] **Phase 2: Calculation Engine** (8 Tasks - Completed)
 - [ ] **Phase 3: eBay Extraction Engine** (9 Tasks)
 - [ ] **Phase 4: Calculator UI & Shadow DOM** (6 Tasks)
 - [ ] **Phase 5: Settings & Storage System** (7 Tasks)
@@ -59,56 +59,56 @@
 - **Priority:** Critical
 - **Dependencies:** TASK-1.2
 - **Acceptance Criteria:** Module runs independently in both browser and Node/testing environments with zero side effects.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-2.2: Selling Price With Shipping Calculation
 - **Description:** Implement formula: `Selling Price = (C + P) / (1 - R - T)`.
 - **Priority:** Critical
 - **Dependencies:** TASK-2.1
 - **Acceptance Criteria:** For $C = 50, P = 12, R = 0.15, T = 0.09$, returns exact unrounded float matching `$81.58` when formatted.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-2.3: Selling Price Without Shipping Calculation
 - **Description:** Implement formula: `Price Without Shipping = Selling Price With Shipping - D`.
 - **Priority:** Critical
 - **Dependencies:** TASK-2.2
 - **Acceptance Criteria:** For calculated price `$81.58` and deduction `$9.98$, returns exact float matching `$71.60`.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-2.4: Estimated Profit Formula
 - **Description:** Implement formula: `Estimated Profit = Selling Price * (1 - R - T) - C`.
 - **Priority:** High
 - **Dependencies:** TASK-2.2
 - **Acceptance Criteria:** Matches target profit $P$ within floating-point epsilon ($|Profit - P| < 0.01$).
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-2.5: Profit Margin & ROI Formulas
 - **Description:** Implement `Profit Margin = (Estimated Profit / Selling Price) * 100` and `ROI = (Estimated Profit / Cost) * 100`.
 - **Priority:** High
 - **Dependencies:** TASK-2.4
 - **Acceptance Criteria:** For $C = 50$, yields Margin $\approx 14.7\%$ and ROI $\approx 24.0\%$.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-2.6: Input Validation, Division Safeguard & Boundary Policies
 - **Description:** Implement comprehensive boundary validation: reject $C < 0$, guard against division by zero ($R + T \ge 100\%$), handle zero cost ($C = 0$) by returning `null` / `"N/A"` for ROI, clamp negative second selling price ($S < D$) with warning label, and guard against `NaN` and $\pm\infty$.
 - **Priority:** Critical
 - **Dependencies:** TASK-2.1
 - **Acceptance Criteria:** Throws descriptive domain error or returns structured error state object on invalid inputs; never outputs `Infinity` or `NaN`.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-2.7: Currency Formatting & Precision Helpers
 - **Description:** Create formatters for currency (2 decimal places with currency symbol) and percentages (1 decimal place).
 - **Priority:** Medium
 - **Dependencies:** TASK-2.1
 - **Acceptance Criteria:** Correctly formats numbers without premature truncation during intermediate calculations.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-2.8: Unit Test Suite for Calculation Engine
 - **Description:** Write comprehensive unit test script verifying Test Cases TC-01, TC-02, TC-03-A, TC-03-B, and boundary cases (TC-21, TC-22).
 - **Priority:** High
 - **Dependencies:** TASK-2.1 through TASK-2.7
 - **Acceptance Criteria:** 100% of arithmetic test assertions pass.
-- **Status:** Pending
+- **Status:** Completed
 
 ---
 
