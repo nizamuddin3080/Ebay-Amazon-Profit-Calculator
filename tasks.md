@@ -15,11 +15,11 @@
 
 ## Phase 1: Project Foundation
 
-### TASK-1.1: Manifest V3 Configuration & Permissions
-- **Description:** Create `manifest.json` defining MV3 metadata, content scripts, background service worker, host permissions for eBay domains, and local storage permissions.
+### TASK-1.1: Manifest V3 Configuration & Least-Privilege Permissions
+- **Description:** Create `manifest.json` defining MV3 metadata, declarative content scripts with precise path patterns (`*://*.ebay.com/itm/*`, etc.), background service worker, and minimal `storage` permission. Exclude broad `host_permissions`.
 - **Priority:** Critical
 - **Dependencies:** None
-- **Acceptance Criteria:** Validates cleanly under Chrome Developer Mode with zero permission warnings or deprecated keys.
+- **Acceptance Criteria:** Validates cleanly under Chrome Developer Mode with zero permission warnings or unnecessary host permissions.
 - **Status:** Pending
 
 ### TASK-1.2: Standard Project Folder Structure Scaffolding
@@ -30,7 +30,7 @@
 - **Status:** Pending
 
 ### TASK-1.3: Background Service Worker Lifecycle
-- **Description:** Implement `background.js` to handle extension installation, set up default settings in `chrome.storage.local`, and log lifecycle status.
+- **Description:** Implement `background.js` to handle extension installation, set up default settings in `chrome.storage.local`, and listen to `webNavigation.onHistoryStateUpdated` for SPA transition routing.
 - **Priority:** Medium
 - **Dependencies:** TASK-1.1, TASK-1.2
 - **Acceptance Criteria:** On install, `chrome.storage.local` is seeded with default parameters; service worker sleeps when idle.
@@ -43,11 +43,11 @@
 - **Acceptance Criteria:** Icons render crisply without scaling distortion on toolbar and extension management pages.
 - **Status:** Pending
 
-### TASK-1.5: Workspace Version Control Sync Check
-- **Description:** Verify Git remote tracking and ensure pre-commit status adheres to `AGENTS.md` guidelines.
+### TASK-1.5: Controlled Git Workflow & Pre-Push Security Gate Setup
+- **Description:** Verify Git configuration adhering strictly to `AGENTS.md` (no automatic push; mandatory diff review, secret scanning, and explicit user approval).
 - **Priority:** High
 - **Dependencies:** TASK-1.2
-- **Acceptance Criteria:** Clean working directory with active tracking against `origin/main`.
+- **Acceptance Criteria:** Clean working directory with remote tracking; pre-push review protocol established.
 - **Status:** Pending
 
 ---
@@ -58,7 +58,7 @@
 - **Description:** Create `utils/calculator-engine.js` as an exportable, pure JavaScript mathematical module with zero DOM dependencies.
 - **Priority:** Critical
 - **Dependencies:** TASK-1.2
-- **Acceptance Criteria:** Module runs independently in both browser and Node/testing environments.
+- **Acceptance Criteria:** Module runs independently in both browser and Node/testing environments with zero side effects.
 - **Status:** Pending
 
 ### TASK-2.2: Selling Price With Shipping Calculation
@@ -72,7 +72,7 @@
 - **Description:** Implement formula: `Price Without Shipping = Selling Price With Shipping - D`.
 - **Priority:** Critical
 - **Dependencies:** TASK-2.2
-- **Acceptance Criteria:** For calculated price `$81.58` and deduction `$9.98`, returns exact float matching `$71.60`.
+- **Acceptance Criteria:** For calculated price `$81.58` and deduction `$9.98$, returns exact float matching `$71.60`.
 - **Status:** Pending
 
 ### TASK-2.4: Estimated Profit Formula
@@ -89,11 +89,11 @@
 - **Acceptance Criteria:** For $C = 50$, yields Margin $\approx 14.7\%$ and ROI $\approx 24.0\%$.
 - **Status:** Pending
 
-### TASK-2.6: Input Validation & Boundary Division Safeguard
-- **Description:** Validate all numerical parameters. Enforce: $C \ge 0$, $P \in \mathbb{R}$, $D \ge 0$, and $R + T < 1.0$.
+### TASK-2.6: Input Validation, Division Safeguard & Boundary Policies
+- **Description:** Implement comprehensive boundary validation: reject $C < 0$, guard against division by zero ($R + T \ge 100\%$), handle zero cost ($C = 0$) by returning `null` / `"N/A"` for ROI, clamp negative second selling price ($S < D$) with warning label, and guard against `NaN` and $\pm\infty$.
 - **Priority:** Critical
 - **Dependencies:** TASK-2.1
-- **Acceptance Criteria:** Throws descriptive domain error or returns error state object when $R + T \ge 1.0$; never outputs `Infinity` or `NaN`.
+- **Acceptance Criteria:** Throws descriptive domain error or returns structured error state object on invalid inputs; never outputs `Infinity` or `NaN`.
 - **Status:** Pending
 
 ### TASK-2.7: Currency Formatting & Precision Helpers
@@ -104,7 +104,7 @@
 - **Status:** Pending
 
 ### TASK-2.8: Unit Test Suite for Calculation Engine
-- **Description:** Write comprehensive unit test script verifying Test Cases 1, 2, and 3, plus boundary cases.
+- **Description:** Write comprehensive unit test script verifying Test Cases TC-01, TC-02, TC-03-A, TC-03-B, and boundary cases (TC-21, TC-22).
 - **Priority:** High
 - **Dependencies:** TASK-2.1 through TASK-2.7
 - **Acceptance Criteria:** 100% of arithmetic test assertions pass.
@@ -122,7 +122,7 @@
 - **Status:** Pending
 
 ### TASK-3.2: Tier 1 JSON-LD Schema.org Extraction
-- **Description:** Parse `<script type="application/ld+json">` for `@type: "Product"` to extract canonical name, price, and currency.
+- **Description:** Parse `<script type="application/ld+json">` for `@type: "Product"` to extract canonical name, price, currency, and offers.
 - **Priority:** High
 - **Dependencies:** TASK-3.1
 - **Acceptance Criteria:** Successfully extracts valid product objects from modern eBay schema scripts.
@@ -135,11 +135,11 @@
 - **Acceptance Criteria:** Extracts prices across standard BIN (Buy It Now) and discount promo layouts.
 - **Status:** Pending
 
-### TASK-3.4: Shipping Detection & Free Shipping Heuristics
-- **Description:** Implement shipping selector parser. Recognize "FREE", "$0", "Fast 'N Free", or parse exact shipping values.
+### TASK-3.4: Three-State Shipping Engine (FREE, KNOWN, UNKNOWN)
+- **Description:** Implement shipping selector parser recognizing "FREE" ($0.00), extracting valid amounts (KNOWN), and identifying ambiguous text ("See details", "Contact seller", "Freight") as UNKNOWN.
 - **Priority:** Critical
 - **Dependencies:** TASK-3.1
-- **Acceptance Criteria:** Distinguishes between explicitly free shipping ($0.00) and missing/uncalculated shipping (returns `null` / `N/A`).
+- **Acceptance Criteria:** Correctly sets shipping state. Never coerces UNKNOWN to $0.00; triggers calculation pause when UNKNOWN.
 - **Status:** Pending
 
 ### TASK-3.5: Item ID & Canonical URL Extraction
@@ -156,25 +156,25 @@
 - **Acceptance Criteria:** Yields valid price on legacy eBay templates where modern classes are omitted.
 - **Status:** Pending
 
-### TASK-3.7: Currency Normalization Utility
-- **Description:** Build parser to clean raw text strings (e.g. `"US $45.99/ea"`, `"GBP 12.50"`, `"EUR 19,95"`) into clean numerical floats.
+### TASK-3.7: Currency Parsing & Disambiguation Engine
+- **Description:** Build parser to identify currency symbol/code (USD, GBP, EUR, CAD, AUD) before stripping characters, handle US (`1,234.56`) and European (`1.234,56`) separator disambiguation, and flag unknown currencies.
 - **Priority:** High
 - **Dependencies:** TASK-3.1
-- **Acceptance Criteria:** Accurately converts comma-delimited European formats and strips extraneous currency symbols.
+- **Acceptance Criteria:** Accurately converts European formats; pauses calculation on unknown currencies without speculative conversion.
 - **Status:** Pending
 
-### TASK-3.8: Dynamic Product Variation Monitor
-- **Description:** Implement observer hooks to detect when size, color, or quantity dropdowns trigger price mutations.
+### TASK-3.8: Targeted & Debounced Dynamic Variation Monitor
+- **Description:** Implement targeted `MutationObserver` on price and shipping containers with a 250ms trailing debounce and duplicate event suppression.
 - **Priority:** High
 - **Dependencies:** TASK-3.3, TASK-3.4
-- **Acceptance Criteria:** Emits an `itemUpdated` event when variant switch completes.
+- **Acceptance Criteria:** Emits an update event only when price/shipping genuinely updates and DOM has stabilized.
 - **Status:** Pending
 
 ### TASK-3.9: Extraction Engine Resilience & Mock Test Runner
-- **Description:** Test parser against static HTML fixtures representing 5 distinct eBay page variants.
+- **Description:** Test parser against static HTML fixtures representing diverse eBay page variants.
 - **Priority:** High
 - **Dependencies:** TASK-3.1 through TASK-3.8
-- **Acceptance Criteria:** Extraction succeeds without uncaught exceptions on all fixtures.
+- **Acceptance Criteria:** Extraction succeeds without uncaught exceptions on all fixtures (TC-13 to TC-17).
 - **Status:** Pending
 
 ---
@@ -182,45 +182,45 @@
 ## Phase 4: Calculator UI & Shadow DOM
 
 ### TASK-4.1: Shadow DOM Host & Style Injection
-- **Description:** Construct the host element `#ebay-amazon-profit-calc-host` and attach an open `ShadowRoot` containing reset tokens and scoped CSS.
+- **Description:** Construct host element `#ebay-amazon-profit-calc-host` and attach an open `ShadowRoot` containing reset tokens and scoped CSS.
 - **Priority:** Critical
 - **Dependencies:** TASK-1.2
 - **Acceptance Criteria:** Zero style leakage from or into the eBay host document.
 - **Status:** Pending
 
-### TASK-4.2: Floating Calculator Markup & Hierarchy
-- **Description:** Build the HTML template containing Header, Product Info, Settings Quick View, Price Cards, Profit Summary, and Action Buttons.
+### TASK-4.2: Floating Calculator Markup & Layout
+- **Description:** Build HTML template containing Header, Product Info, Settings Quick View, Price Cards, Profit Summary, Action Buttons, and Paused Banner.
 - **Priority:** High
 - **Dependencies:** TASK-4.1
 - **Acceptance Criteria:** Markup matches `design.md` specifications exactly.
 - **Status:** Pending
 
 ### TASK-4.3: Viewport Dragging & Boundary Constraints
-- **Description:** Implement pointer-based dragging on the header handle, constraining coordinates inside the visible window.
+- **Description:** Implement pointer-based dragging on header handle, constraining coordinates inside visible window.
 - **Priority:** Medium
 - **Dependencies:** TASK-4.2
 - **Acceptance Criteria:** Calculator moves smoothly without lag and cannot be dragged off-screen.
 - **Status:** Pending
 
 ### TASK-4.4: Minimized Pill State & Toggle Animation
-- **Description:** Implement toggle logic collapsing the full calculator into the compact pill showing live Amazon Price and Profit.
+- **Description:** Implement toggle logic collapsing the full calculator into compact pill showing live Amazon Price and Profit.
 - **Priority:** Medium
 - **Dependencies:** TASK-4.2
 - **Acceptance Criteria:** Clean transition between expanded and minimized states with state persistence.
 - **Status:** Pending
 
-### TASK-4.5: Manual Input Controls & Two-Way Binding
-- **Description:** Connect price and shipping input elements to internal state with input debouncing and visual `[EDITED]` tags.
+### TASK-4.5: Dual Independent Manual Input Controls & Re-Detect Actions
+- **Description:** Connect price and shipping inputs to independent override states (`priceOverride`, `shippingOverride`) with `[MANUAL]` badges and `[↺]` Re-detect triggers.
 - **Priority:** High
 - **Dependencies:** TASK-4.2
-- **Acceptance Criteria:** Typing a new value updates calculations in real time without lag.
+- **Acceptance Criteria:** Typing a value locks only that field; variation updates preserve manual input while updating the other field.
 - **Status:** Pending
 
-### TASK-4.6: One-Click Clipboard Copying & Toast Notification
-- **Description:** Implement clipboard write functionality on both price cards with an animated "Copied!" feedback badge.
+### TASK-4.6: Robust Clipboard Copy & Error Feedback
+- **Description:** Implement clipboard write functionality on both price cards with `navigator.clipboard.writeText`, fallback `execCommand`, emerald success toast, and rose error toast on failure.
 - **Priority:** High
 - **Dependencies:** TASK-4.2
-- **Acceptance Criteria:** Copies exact formatted price (e.g., `81.58`) and displays confirmation toast for 1500ms.
+- **Acceptance Criteria:** Copies exact formatted price; displays confirmation toast only upon verified success; displays error toast if copy fails.
 - **Status:** Pending
 
 ---
@@ -235,7 +235,7 @@
 - **Status:** Pending
 
 ### TASK-5.2: Options Page UI (settings.html & settings.css)
-- **Description:** Create the standalone settings page with cards for Commission %, Tax %, Target Profit $, and Shipping Deduction $.
+- **Description:** Create standalone settings page with cards for Commission %, Tax %, Target Profit $, and Shipping Deduction $.
 - **Priority:** High
 - **Dependencies:** TASK-5.1
 - **Acceptance Criteria:** Clean, modern options UI compliant with `design.md`.
@@ -249,17 +249,17 @@
 - **Status:** Pending
 
 ### TASK-5.4: Reset to Defaults Functionality
-- **Description:** Provide a one-click button restoring all settings to initial defaults (15% Comm, 9% Tax, $12 Profit, $9.98 Ded).
+- **Description:** Provide one-click button restoring all settings to initial defaults (15% Comm, 9% Tax, $12 Profit, $9.98 Ded).
 - **Priority:** Medium
 - **Dependencies:** TASK-5.3
 - **Acceptance Criteria:** Storage is restored to exact factory defaults and UI inputs refresh immediately.
 - **Status:** Pending
 
 ### TASK-5.5: Reactive Cross-Tab Storage Synchronization
-- **Description:** Listen to `chrome.storage.onChanged` in the content script to update open calculator instances immediately.
+- **Description:** Listen to `chrome.storage.onChanged` in content script to update open calculator instances immediately.
 - **Priority:** High
 - **Dependencies:** TASK-5.1, TASK-4.2
-- **Acceptance Criteria:** Saving new settings in the options tab immediately recalculates pricing in existing eBay tabs without refresh.
+- **Acceptance Criteria:** Saving new settings in options tab immediately recalculates pricing in existing eBay tabs without refresh.
 - **Status:** Pending
 
 ### TASK-5.6: Browser Action Quick Popup
@@ -294,18 +294,18 @@
 - **Acceptance Criteria:** Consecutive injection calls cleanly verify existence and abort without error.
 - **Status:** Pending
 
-### TASK-6.3: SPA & History API Navigation Detection
-- **Description:** Detect eBay client-side page transitions via `popstate` and `pushState` wrappers, triggering re-extraction when Item ID changes.
+### TASK-6.3: SPA Navigation Detection & Lifecycle Teardown
+- **Description:** Implement multi-strategy SPA detection (`popstate`/`hashchange`, `<head>` observer, background `webNavigation` message, 500ms URL poll) with full teardown and manual override reset on Item ID change.
 - **Priority:** High
 - **Dependencies:** TASK-6.1
-- **Acceptance Criteria:** Browsing between related eBay items smoothly resets state and loads new product metrics.
+- **Acceptance Criteria:** Browsing between related eBay items cleanly disconnects old observers, clears timers, resets manual overrides, and extracts new item details.
 - **Status:** Pending
 
-### TASK-6.4: Debounced Mutation Observer for Dynamic Variants
-- **Description:** Attach a debounced (250ms) `MutationObserver` to eBay price containers to capture AJAX price updates.
+### TASK-6.4: Debounced Targeted Observer for Dynamic Variants
+- **Description:** Attach debounced (250ms) `MutationObserver` strictly to price and shipping containers to capture AJAX updates.
 - **Priority:** High
 - **Dependencies:** TASK-6.1
-- **Acceptance Criteria:** Selecting a different size or color updates the calculated Amazon prices within 300ms.
+- **Acceptance Criteria:** Selecting a different size or color updates calculated Amazon prices within 300ms while preserving manual overrides.
 - **Status:** Pending
 
 ### TASK-6.5: End-to-End State Re-Synchronization
@@ -319,18 +319,18 @@
 
 ## Phase 7: Testing & Quality Assurance
 
-### TASK-7.1: Automated Mathematical Test Verification
-- **Description:** Run all test cases from `testing.md` and log exact floating-point accuracy.
+### TASK-7.1: Automated Mathematical Test Verification (TC-01 to TC-03-B)
+- **Description:** Run all core arithmetic test cases and log exact floating-point accuracy.
 - **Priority:** Critical
 - **Dependencies:** Phase 2, Phase 6
-- **Acceptance Criteria:** Zero calculation discrepancies against Test Cases 1, 2, and 3.
+- **Acceptance Criteria:** Zero calculation discrepancies against Test Cases 1, 2, 3A, and 3B.
 - **Status:** Pending
 
-### TASK-7.2: Live eBay Listing DOM Extraction Matrix
-- **Description:** Test extraction across 15 diverse live eBay listings (Standard BIN, Variations, Best Offer, Auction, Free Shipping, Freight).
+### TASK-7.2: Comprehensive Feature & Boundary Verification (TC-13 to TC-25)
+- **Description:** Execute automated and manual test runs for currency parsing (TC-13, 14, 15), shipping states (TC-16, 17), overrides (TC-18, 19, 20), boundary limits (TC-21, 22), clipboard (TC-23), debounce (TC-24), and injection prevention (TC-25).
 - **Priority:** Critical
 - **Dependencies:** Phase 3, Phase 6
-- **Acceptance Criteria:** Correctly detects price on at least 95% of active product listings.
+- **Acceptance Criteria:** 100% of test cases pass according to specified pass/fail criteria.
 - **Status:** Pending
 
 ### TASK-7.3: Dynamic Variant Stress Test
@@ -355,10 +355,10 @@
 - **Status:** Pending
 
 ### TASK-7.6: Clipboard Copy Reliability Test
-- **Description:** Verify clipboard copy on both Windows and macOS across standard and secured browser contexts.
+- **Description:** Verify clipboard copy across standard and secured browser contexts, testing fallback and error toast.
 - **Priority:** Medium
 - **Dependencies:** TASK-4.6
-- **Acceptance Criteria:** Price copies to system clipboard reliably on every click.
+- **Acceptance Criteria:** Price copies to system clipboard reliably; error toast triggers cleanly if denied.
 - **Status:** Pending
 
 ### TASK-7.7: Manifest V3 Security Audit
@@ -387,21 +387,21 @@
 - **Status:** Pending
 
 ### TASK-8.2: Developer Mode Installation Runbook Verification
-- **Description:** Execute clean install via `chrome://extensions/` -> **Load unpacked** on a fresh profile.
+- **Description:** Execute clean install via `chrome://extensions/` -> **Load unpacked** on fresh profile.
 - **Priority:** Critical
 - **Dependencies:** TASK-8.1
-- **Acceptance Criteria:** Extension loads immediately with zero errors or warnings in the Chrome Extensions dashboard.
+- **Acceptance Criteria:** Extension loads immediately with zero errors or warnings in Chrome Extensions dashboard.
 - **Status:** Pending
 
 ### TASK-8.3: Documentation & README Finalization
-- **Description:** Update `README.md` and `changelog.md` to reflect production release status and include finalized screenshots.
+- **Description:** Update `README.md` and `changelog.md` to reflect production release status.
 - **Priority:** Medium
 - **Dependencies:** TASK-8.1
 - **Acceptance Criteria:** All documentation links and instructions are accurate and complete.
 - **Status:** Pending
 
-### TASK-8.4: Git Repository Tagging & Synchronization
-- **Description:** Commit all artifacts, create semantic release tag `v1.0.0`, and push to `origin main`.
+### TASK-8.4: Git Security Review & User-Authorized Remote Push
+- **Description:** Execute pre-push checklist: Git diff review, secret scanning, test verification, and secure user approval before pushing `v1.0.0` to `origin main`.
 - **Priority:** Critical
 - **Dependencies:** TASK-8.1 through TASK-8.3
 - **Acceptance Criteria:** Remote repository at `nizamuddin3080/Ebay-Amazon-Profit-Calculator` is up to date with clean commit history.
