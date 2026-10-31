@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "eBay to Amazon Profit Calculator",
+  "version": "1.0.0",
+  "description": "Calculates Amazon selling prices from eBay product pages for targeted net margins.",
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.ebay.com/itm/*",
+        "*://*.ebay.co.uk/itm/*",
+        "*://*.ebay.ca/itm/*",
+        "*://*.ebay.com.au/itm/*",
+        "*://*.ebay.de/itm/*"
+      ],
+      "js": [
+        "utils/calculator-engine.js",
+        "utils/ebay-parser.js",
+        "utils/storage.js",
+        "calculator.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "eBay to Amazon Profit Calculator",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "settings/settings.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "styles.css"
+      ],
+      "matches": [
+        "*://*.ebay.com/*",
+        "*://*.ebay.co.uk/*",
+        "*://*.ebay.ca/*",
+        "*://*.ebay.com.au/*",
+        "*://*.ebay.de/*"
+      ]
+    }
+  ]
+}

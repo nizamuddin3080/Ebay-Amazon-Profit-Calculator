@@ -2,12 +2,12 @@
 
 ## Phase Status Summary
 
-- [ ] **Phase 1: Project Foundation** (5 Tasks)
+- [x] **Phase 1: Project Foundation** (5 Tasks - Completed)
 - [x] **Phase 2: Calculation Engine** (8 Tasks - Completed)
 - [x] **Phase 3: eBay Extraction Engine** (9 Tasks - Completed)
 - [x] **Phase 4: Calculator UI & Shadow DOM** (6 Tasks - Completed)
 - [x] **Phase 5: Settings & Storage System** (7 Tasks - Completed)
-- [ ] **Phase 6: Integration & Dynamic Observers** (5 Tasks)
+- [x] **Phase 6: Integration & Dynamic Observers** (5 Tasks - Completed)
 - [ ] **Phase 7: Testing & Quality Assurance** (8 Tasks)
 - [ ] **Phase 8: Release Preparation** (5 Tasks)
 
@@ -20,35 +20,35 @@
 - **Priority:** Critical
 - **Dependencies:** None
 - **Acceptance Criteria:** Validates cleanly under Chrome Developer Mode with zero permission warnings or unnecessary host permissions.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-1.2: Standard Project Folder Structure Scaffolding
 - **Description:** Scaffold directories: `/utils`, `/icons`, `/popup`, `/settings`, and core script files.
 - **Priority:** High
 - **Dependencies:** TASK-1.1
 - **Acceptance Criteria:** Directory layout strictly matches the architecture specification.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-1.3: Background Service Worker Lifecycle
 - **Description:** Implement `background.js` to handle extension installation, set up default settings in `chrome.storage.local`, and listen to `webNavigation.onHistoryStateUpdated` for SPA transition routing.
 - **Priority:** Medium
 - **Dependencies:** TASK-1.1, TASK-1.2
 - **Acceptance Criteria:** On install, `chrome.storage.local` is seeded with default parameters; service worker sleeps when idle.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-1.4: Icon & Asset Generation
 - **Description:** Create clean, crisp 16x16, 48x48, and 128x128 extension icons reflecting the calculator/e-commerce theme.
 - **Priority:** Low
 - **Dependencies:** TASK-1.2
 - **Acceptance Criteria:** Icons render crisply without scaling distortion on toolbar and extension management pages.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-1.5: Controlled Git Workflow & Pre-Push Security Gate Setup
 - **Description:** Verify Git configuration adhering strictly to `AGENTS.md` (no automatic push; mandatory diff review, secret scanning, and explicit user approval).
 - **Priority:** High
 - **Dependencies:** TASK-1.2
 - **Acceptance Criteria:** Clean working directory with remote tracking; pre-push review protocol established.
-- **Status:** Pending
+- **Status:** Completed
 
 ---
 
@@ -285,35 +285,35 @@
 - **Priority:** Critical
 - **Dependencies:** Phases 1, 2, 3, 4, 5
 - **Acceptance Criteria:** Injects floating calculator on valid eBay product pages on `document_idle`.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-6.2: Single-Instance Verification & Teardown Guards
 - **Description:** Implement singleton guard ensuring duplicate calculators are never injected into the same tab.
 - **Priority:** High
 - **Dependencies:** TASK-6.1
 - **Acceptance Criteria:** Consecutive injection calls cleanly verify existence and abort without error.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-6.3: SPA Navigation Detection & Lifecycle Teardown
 - **Description:** Implement multi-strategy SPA detection (`popstate`/`hashchange`, `<head>` observer, background `webNavigation` message, 500ms URL poll) with full teardown and manual override reset on Item ID change.
 - **Priority:** High
 - **Dependencies:** TASK-6.1
 - **Acceptance Criteria:** Browsing between related eBay items cleanly disconnects old observers, clears timers, resets manual overrides, and extracts new item details.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-6.4: Debounced Targeted Observer for Dynamic Variants
 - **Description:** Attach debounced (250ms) `MutationObserver` strictly to price and shipping containers to capture AJAX updates.
 - **Priority:** High
 - **Dependencies:** TASK-6.1
 - **Acceptance Criteria:** Selecting a different size or color updates calculated Amazon prices within 300ms while preserving manual overrides.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-6.5: End-to-End State Re-Synchronization
 - **Description:** Connect manual override state with dynamic observation to ensure manual edits are not overwritten prematurely.
 - **Priority:** Medium
 - **Dependencies:** TASK-6.4
 - **Acceptance Criteria:** User-typed values remain intact until user navigates to a new item or clicks "Re-detect".
-- **Status:** Pending
+- **Status:** Completed
 
 ---
 
