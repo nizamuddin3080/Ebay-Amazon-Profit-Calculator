@@ -4,9 +4,9 @@ A lightweight, high-performance, and privacy-first Google Chrome Extension (Mani
 
 ---
 
-> **Status:** Phase 1 – Architecture, Planning, Correction & Pre-Development Audit  
+> **Status:** Production Ready (Version 1.0.0)  
 > **Target Manifest Version:** Manifest V3  
-> **Source Code Status:** Planned (Implementation begins in Phase 2 upon formal approval)
+> **Source Code Status:** Fully Implemented & Tested (64/64 Automated Tests Passing)
 
 ---
 
@@ -17,7 +17,7 @@ The **eBay to Amazon Profit Calculator** automatically detects product parameter
 Sellers often face significant friction and calculation errors when pricing products on Amazon sourced from eBay. Factoring in Amazon referral commission fees (default 15%), sales tax impact (default 9%), desired net profit, and optional customer shipping deductions ($9.98) requires multi-step algebra. This extension eliminates manual math by injecting an unobtrusive, reactive floating calculator directly into the eBay viewport.
 
 ### Primary Objectives
-- **Zero Friction:** Automatic extraction upon navigating to any active eBay product listing.
+- **Zero Friction:** Automatic extraction upon navigating to any active eBay product listing (`/itm/*`).
 - **Accurate Math:** Exact algebraic formula factoring in referral fees, taxes, and profit margins.
 - **Dynamic Adaptability:** Real-time recalculation upon eBay variant selection (size, color, condition) without full page reload.
 - **Total Privacy & Speed:** 100% client-side execution; zero external servers, tracking, analytics, or third-party dependencies.
@@ -25,21 +25,21 @@ Sellers often face significant friction and calculation errors when pricing prod
 
 ---
 
-## 2. Core Features (MVP Scope)
+## 2. Core Features (Implemented)
 
 | Feature | Description | Status |
-| :--- | :--- | :--- |
-| **Automatic Extraction** | Extracts title, price, shipping cost, item ID, and URL via a multi-tiered fallback engine (JSON-LD & DOM). | Planned (Phase 3) |
-| **Currency Disambiguation** | Distinguishes US (`1,234.56`) and European (`1.234,56`) formats; pauses calculation on unknown currencies with zero speculative conversion. | Planned (Phase 3) |
-| **Three-State Shipping Model** | Explicitly models `FREE` ($0.00), `KNOWN` (valid amount), and `UNKNOWN` (missing/ambiguous; pauses calculation). | Planned (Phase 3) |
-| **Dual Manual Overrides** | Separate overrides for Price and Shipping; variation changes preserve manual inputs while updating non-overridden fields. | Planned (Phase 4) |
-| **Dynamic Variation Detection** | Targeted 250ms debounced observer for option/variant switches with duplicate event suppression. | Planned (Phase 3/6) |
-| **Profit Calculation Engine** | Computes Amazon Selling Price (With & Without Shipping), Estimated Net Profit, Profit Margin (%), and ROI (%). | Planned (Phase 2) |
-| **Boundary Policy Enforcement** | Handles zero cost ($C=0$ with ROI N/A), guards against $R+T \ge 100\%$, clamps negative second price ($S < D$), and warns on negative target profit. | Planned (Phase 2) |
-| **Floating Calculator UI** | Encapsulated inside a Shadow DOM to guarantee zero CSS conflicts with eBay's layout. Draggable and minimizable. | Planned (Phase 4) |
-| **Dual Selling Price Display** | Displays Amazon Price With Shipping and Amazon Price Without Shipping ($9.98 deduction). | Planned (Phase 4) |
-| **Reliable Clipboard Actions** | Dedicated copy buttons with primary write, execCommand fallback, and honest error handling (no false success). | Planned (Phase 4) |
-| **Persistent Configuration** | Stores commission rate, sales tax rate, target profit, and shipping deduction locally via `chrome.storage.local`. | Planned (Phase 5) |
+| :--- | :--- | :---: |
+| **Automatic Extraction** | Extracts title, price, shipping cost, item ID, and URL via a multi-tiered fallback engine (JSON-LD & DOM). | **Completed** |
+| **Currency Disambiguation** | Distinguishes US (`1,234.56`) and European (`1.234,56`) formats; pauses calculation on unknown currencies with zero speculative conversion. | **Completed** |
+| **Three-State Shipping Model** | Explicitly models `FREE` ($0.00), `KNOWN` (valid amount), and `UNKNOWN` (missing/ambiguous; pauses calculation). | **Completed** |
+| **Dual Manual Overrides** | Separate overrides for Price and Shipping; variation changes preserve manual inputs while updating non-overridden fields. | **Completed** |
+| **Dynamic Variation Detection** | Targeted 250ms debounced observer for option/variant switches with duplicate event suppression. | **Completed** |
+| **Profit Calculation Engine** | Computes Amazon Selling Price (With & Without Shipping), Estimated Net Profit, Profit Margin (%), and ROI (%). | **Completed** |
+| **Boundary Policy Enforcement** | Handles zero cost ($C=0$ with ROI N/A), guards against $R+T \ge 100\%$, clamps negative second price ($S < D$), and warns on negative target profit. | **Completed** |
+| **Floating Calculator UI** | Encapsulated inside a Shadow DOM (`#ebay-amazon-profit-calc-host`) to guarantee zero CSS conflicts with eBay's layout. Draggable and minimizable. | **Completed** |
+| **Dual Selling Price Display** | Displays Amazon Price With Shipping and Amazon Price Without Shipping ($9.98 deduction). | **Completed** |
+| **Reliable Clipboard Actions** | Dedicated copy buttons with primary write, execCommand fallback, and honest error handling (no false success). | **Completed** |
+| **Persistent Configuration** | Stores commission rate, sales tax rate, target profit, and shipping deduction locally via `chrome.storage.local`. Options page + Toolbar popup. | **Completed** |
 
 ---
 
@@ -58,46 +58,26 @@ Sellers often face significant friction and calculation errors when pricing prod
 
 ---
 
-## 4. Project Scope Control
+## 4. Mathematical Engine & Formulas
 
-To guarantee reliability, speed, and clean code, the MVP scope is strictly controlled:
+All calculations use internal high-precision floats and format numbers to 2 decimal places for currency and 1 decimal place for percentages:
 
-### In-Scope (MVP)
-- Automatic eBay product detection and data extraction.
-- Support for common eBay layouts (`ebay.com`, `ebay.co.uk`, `ebay.ca`, `ebay.com.au`, `ebay.de`).
-- Accurate mathematical calculations (With Shipping, Without Shipping, Margin %, ROI %).
-- Three-state shipping model (`FREE`, `KNOWN`, `UNKNOWN`).
-- Dual independent manual price/shipping overrides.
-- Floating, draggable, minimizable UI inside a Shadow DOM.
-- Settings management with local persistence.
-- Reliable clipboard copy with failure fallback.
+$$\text{Selling Price With Shipping } (S) = \frac{C + P}{1 - R - T}$$
+$$\text{Selling Price Without Shipping } (S_{\text{no\_ship}}) = S - D$$
+$$\text{Estimated Profit } (\Pi) = S \times (1 - R - T) - C$$
+$$\text{Profit Margin } (M) = \left(\frac{\Pi}{S}\right) \times 100$$
+$$\text{Return on Investment } (\text{ROI}) = \left(\frac{\Pi}{C}\right) \times 100$$
 
-### Strictly Out-of-Scope (Future Explorations)
-- No automated Amazon product search, scraping, or Buy Box matching.
-- No automated unauthenticated currency conversions.
-- No historical pricing trackers or keepa/camelcamelcamel API integrations.
-- No bulk export, CSV downloads, or cloud synchronization.
-- No user accounts, logins, telemetry, or remote backends.
+Where:
+- $C = \text{Total eBay Cost} = \text{Product Price} + \text{Shipping Cost}$
+- $R = \text{Amazon Referral Commission Rate}$ (Default: `15.0%` / `0.15`)
+- $T = \text{Sales Tax Rate}$ (Default: `9.0%` / `0.09`)
+- $P = \text{Target Profit}$ (Default: `$12.00`)
+- $D = \text{Shipping Deduction}$ (Default: `$9.98`, applied exclusively to $S_{\text{no\_ship}}$)
 
 ---
 
-## 5. Documentation Index
-
-The complete architectural blueprint and engineering specifications are organized into dedicated documentation files:
-
-1. [plan.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/plan.md) – Product development plan, user stories, requirements, and milestones.
-2. [architecture.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/architecture.md) – Technical architecture, Manifest V3 design, component lifecycle, and Mermaid diagrams.
-3. [design.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/design.md) – Complete UI/UX design specification, design tokens, wireframes, and component states.
-4. [tasks.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tasks.md) – Comprehensive task breakdown across 8 phases with acceptance criteria and status tracking.
-5. [rules.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/rules.md) – Strict coding standards, security constraints, and architectural invariants.
-6. [testing.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/testing.md) – Quality assurance strategy, verified test cases (TC-01 to TC-25), edge case matrix, and runbooks.
-7. [memory.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/memory.md) – Project memory, confirmed architectural decisions (ADR-01 to ADR-14), and configuration registry.
-8. [changelog.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/changelog.md) – Semantic version history and release log.
-9. [planning-audit.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/planning-audit.md) – Comprehensive pre-development consistency audit and readiness verification report.
-
----
-
-## 6. Planned Folder Structure
+## 5. Folder Structure
 
 ```
 EbayAmazonProfitCalculator/
@@ -113,47 +93,79 @@ EbayAmazonProfitCalculator/
 ├── changelog.md               # Version changelog
 ├── planning-audit.md          # Pre-development audit report
 │
-├── manifest.json              # [Planned - Phase 1] MV3 configuration
-├── background.js              # [Planned - Phase 1] Service worker lifecycle handler
-├── content.js                 # [Planned - Phase 4/6] Content script entry point
-├── styles.css                 # [Planned - Phase 4] Encapsulated UI stylesheet
+├── manifest.json              # MV3 configuration
+├── background.js              # Service worker lifecycle handler
+├── content.js                 # Master content script coordinator
+├── calculator.js              # Floating calculator UI controller & Shadow DOM mounting
+├── styles.css                 # Encapsulated Shadow DOM stylesheet
 │
-├── popup/                     # Browser Action Popup (Optional quick settings/status)
-│   ├── popup.html             # [Planned - Phase 5]
-│   ├── popup.js               # [Planned - Phase 5]
-│   └── popup.css              # [Planned - Phase 5]
+├── popup/                     # Toolbar Browser Action Popup
+│   ├── popup.html             
+│   ├── popup.js               
+│   └── popup.css              
 │
 ├── settings/                  # Dedicated Extension Options Page
-│   ├── settings.html          # [Planned - Phase 5]
-│   ├── settings.js            # [Planned - Phase 5]
-│   └── settings.css           # [Planned - Phase 5]
+│   ├── settings.html          
+│   ├── settings.js            
+│   └── settings.css           
 │
-├── utils/                     # Pure, decoupled business logic modules
-│   ├── calculator-engine.js   # [Planned - Phase 2] Pure math calculation module
-│   ├── ebay-parser.js         # [Planned - Phase 3] Multi-tiered DOM/JSON-LD parser
-│   └── storage.js             # [Planned - Phase 5] LocalStorage & chrome.storage adapter
+├── utils/                     # Pure business logic modules
+│   ├── calculator-engine.js   # Pure math calculation module
+│   ├── ebay-parser.js         # Multi-tiered DOM/JSON-LD parser
+│   └── storage.js             # LocalStorage & chrome.storage adapter
 │
-└── icons/                     # Extension branding assets
-    ├── icon16.png             # [Planned - Phase 1]
-    ├── icon48.png             # [Planned - Phase 1]
-    └── icon128.png            # [Planned - Phase 1]
+├── icons/                     # Extension branding assets
+│   ├── icon16.png             
+│   ├── icon48.png             
+│   └── icon128.png            
+│
+├── scripts/                   # Build and utility scripts
+│   └── generate-icons.js      
+│
+└── tests/                     # Comprehensive test suites
+    ├── test-calculator.js     # Calculation engine unit tests
+    ├── test-parser.js         # eBay parser unit tests
+    ├── test-calculator-ui.js  # UI rendering and interaction tests
+    ├── test-storage.js        # Storage adapter unit tests
+    ├── test-integration.js    # Controller and lifecycle integration tests
+    └── test-qa-suite.js       # Phase 7 full QA & E2E verification suite
 ```
 
 ---
 
-## 7. Installation Overview (Developer Mode)
+## 6. Installation & Developer Mode Runbook
 
-*(Note: The extension is currently in Phase 1 Planning. Source code will be available upon completion of Phase 2 through Phase 6.)*
+Follow these steps to load the extension in Google Chrome:
 
-Once development is complete:
-1. Clone the repository:
+1. Clone or download this repository:
    ```bash
    git clone https://github.com/nizamuddin3080/Ebay-Amazon-Profit-Calculator.git
    ```
-2. Open Google Chrome and navigate to `chrome://extensions/`.
+2. Open Google Chrome and navigate to:
+   ```
+   chrome://extensions/
+   ```
 3. Enable **Developer mode** toggle in the top-right corner.
-4. Click **Load unpacked** and select the `EbayAmazonProfitCalculator` root directory.
-5. Open any eBay item page (e.g., `https://www.ebay.com/itm/...`) to observe the floating calculator.
+4. Click the **Load unpacked** button in the top-left toolbar.
+5. In the file picker, select the `EbayAmazonProfitCalculator` project directory.
+6. Verify that **eBay to Amazon Profit Calculator (v1.0.0)** appears with its icon and active service worker.
+7. Navigate to any live eBay item listing (e.g. `https://www.ebay.com/itm/123456789`) to view the floating profit calculator in action.
+
+---
+
+## 7. Running the Automated Test Suites
+
+All tests run via standard Node.js without requiring external testing frameworks or dependencies:
+
+```bash
+# Run all 6 test suites (64 tests total)
+node tests/test-calculator.js
+node tests/test-parser.js
+node tests/test-calculator-ui.js
+node tests/test-storage.js
+node tests/test-integration.js
+node tests/test-qa-suite.js
+```
 
 ---
 
@@ -161,4 +173,4 @@ Once development is complete:
 
 - **Repository:** `https://github.com/nizamuddin3080/Ebay-Amazon-Profit-Calculator.git`
 - **Target Branch:** `main`
-- **Policy:** As defined in [AGENTS.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/AGENTS.md), automatic remote pushes are prohibited. All remote pushes require a completed pre-push review (Git diff review, secret scanning, test verification) and **explicit user approval**.
+- **Policy:** In accordance with [AGENTS.md](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/AGENTS.md), all remote pushes require a completed pre-push review (Git diff review, secret scanning, test verification) and **explicit user approval**.

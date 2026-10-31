@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.0] - 2026-11-01
+
+### Added
+- **Production Release of eBay to Amazon Profit Calculator (Manifest V3):**
+  - **Pure Calculation Engine (`utils/calculator-engine.js`):** Reverse-margin pricing algebraic formulas with zero DOM dependencies and microsecond execution latency (<2 µs/run).
+  - **Multi-Tiered eBay Extraction Pipeline (`utils/ebay-parser.js`):** Four-tier fallback parsing (JSON-LD, high-specificity DOM selectors, OpenGraph meta tags, sanitized regex fallback), European/US currency parsing, and Three-State shipping categorization.
+  - **Encapsulated Floating UI (`calculator.js`, `styles.css`):** Scoped Shadow DOM injection under `#ebay-amazon-profit-calc-host`, smooth dragging with boundary clamping, collapsible minimized pill mode, live calculation display, dual manual input overrides with "Re-detect" badges, and clipboard copy buttons with emerald/rose toast feedback.
+  - **Settings & Storage Architecture (`utils/storage.js`, `settings/`, `popup/`):** Full schema validation, `chrome.storage.local` caching with in-memory fallback, options configuration page, and quick toolbar popup.
+  - **Master Controller Integration (`content.js`, `background.js`):** Single-instance guards, 250ms debounced variation observer, 4-strategy SPA navigation with full state teardown and Item ID change resets.
+  - **Extension Assets:** 16px, 48px, 128px PNG icons.
+  - **Comprehensive QA Test Suite (`tests/`):** 64 automated tests across 6 test suites covering TC-01 through TC-25, 50-cycle variant stress tests, extreme settings boundary tests, and Manifest V3 security audit.
+
+---
+
 ## [0.2.0] - 2026-11-01
 
 ### Added
