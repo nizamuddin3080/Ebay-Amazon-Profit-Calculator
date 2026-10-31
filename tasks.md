@@ -4,7 +4,7 @@
 
 - [ ] **Phase 1: Project Foundation** (5 Tasks)
 - [x] **Phase 2: Calculation Engine** (8 Tasks - Completed)
-- [ ] **Phase 3: eBay Extraction Engine** (9 Tasks)
+- [x] **Phase 3: eBay Extraction Engine** (9 Tasks - Completed)
 - [ ] **Phase 4: Calculator UI & Shadow DOM** (6 Tasks)
 - [ ] **Phase 5: Settings & Storage System** (7 Tasks)
 - [ ] **Phase 6: Integration & Dynamic Observers** (5 Tasks)
@@ -119,63 +119,63 @@
 - **Priority:** Critical
 - **Dependencies:** TASK-1.2
 - **Acceptance Criteria:** Pipeline gracefully proceeds through Tier 1 -> Tier 2 -> Tier 3 -> Tier 4 until valid data is parsed.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.2: Tier 1 JSON-LD Schema.org Extraction
 - **Description:** Parse `<script type="application/ld+json">` for `@type: "Product"` to extract canonical name, price, currency, and offers.
 - **Priority:** High
 - **Dependencies:** TASK-3.1
 - **Acceptance Criteria:** Successfully extracts valid product objects from modern eBay schema scripts.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.3: Tier 2 eBay DOM Selector Extraction (Price & Title)
 - **Description:** Implement high-priority CSS selector queries for listed item price and title.
 - **Priority:** Critical
 - **Dependencies:** TASK-3.1
 - **Acceptance Criteria:** Extracts prices across standard BIN (Buy It Now) and discount promo layouts.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.4: Three-State Shipping Engine (FREE, KNOWN, UNKNOWN)
 - **Description:** Implement shipping selector parser recognizing "FREE" ($0.00), extracting valid amounts (KNOWN), and identifying ambiguous text ("See details", "Contact seller", "Freight") as UNKNOWN.
 - **Priority:** Critical
 - **Dependencies:** TASK-3.1
 - **Acceptance Criteria:** Correctly sets shipping state. Never coerces UNKNOWN to $0.00; triggers calculation pause when UNKNOWN.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.5: Item ID & Canonical URL Extraction
 - **Description:** Extract eBay Item ID from URL regex pattern (`/itm/(\d+)`) and canonical meta tags.
 - **Priority:** Medium
 - **Dependencies:** TASK-3.1
 - **Acceptance Criteria:** Correctly isolates numeric item IDs on localized domains (`ebay.com`, `ebay.co.uk`, etc.).
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.6: Tier 3 Meta Tags & Tier 4 Regex Parsing
 - **Description:** Implement fallback parser querying `og:price:amount` and sanitized regex scans over `#mainContent`.
 - **Priority:** Medium
 - **Dependencies:** TASK-3.1
 - **Acceptance Criteria:** Yields valid price on legacy eBay templates where modern classes are omitted.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.7: Currency Parsing & Disambiguation Engine
 - **Description:** Build parser to identify currency symbol/code (USD, GBP, EUR, CAD, AUD) before stripping characters, handle US (`1,234.56`) and European (`1.234,56`) separator disambiguation, and flag unknown currencies.
 - **Priority:** High
 - **Dependencies:** TASK-3.1
 - **Acceptance Criteria:** Accurately converts European formats; pauses calculation on unknown currencies without speculative conversion.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.8: Targeted & Debounced Dynamic Variation Monitor
 - **Description:** Implement targeted `MutationObserver` on price and shipping containers with a 250ms trailing debounce and duplicate event suppression.
 - **Priority:** High
 - **Dependencies:** TASK-3.3, TASK-3.4
 - **Acceptance Criteria:** Emits an update event only when price/shipping genuinely updates and DOM has stabilized.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-3.9: Extraction Engine Resilience & Mock Test Runner
 - **Description:** Test parser against static HTML fixtures representing diverse eBay page variants.
 - **Priority:** High
 - **Dependencies:** TASK-3.1 through TASK-3.8
 - **Acceptance Criteria:** Extraction succeeds without uncaught exceptions on all fixtures (TC-13 to TC-17).
-- **Status:** Pending
+- **Status:** Completed
 
 ---
 
