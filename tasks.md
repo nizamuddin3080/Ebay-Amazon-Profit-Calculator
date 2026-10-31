@@ -6,7 +6,7 @@
 - [x] **Phase 2: Calculation Engine** (8 Tasks - Completed)
 - [x] **Phase 3: eBay Extraction Engine** (9 Tasks - Completed)
 - [x] **Phase 4: Calculator UI & Shadow DOM** (6 Tasks - Completed)
-- [ ] **Phase 5: Settings & Storage System** (7 Tasks)
+- [x] **Phase 5: Settings & Storage System** (7 Tasks - Completed)
 - [ ] **Phase 6: Integration & Dynamic Observers** (5 Tasks)
 - [ ] **Phase 7: Testing & Quality Assurance** (8 Tasks)
 - [ ] **Phase 8: Release Preparation** (5 Tasks)
@@ -232,49 +232,49 @@
 - **Priority:** Critical
 - **Dependencies:** TASK-1.2
 - **Acceptance Criteria:** Reads settings reliably with automatic fallback to defaults if unset.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-5.2: Options Page UI (settings.html & settings.css)
 - **Description:** Create standalone settings page with cards for Commission %, Tax %, Target Profit $, and Shipping Deduction $.
 - **Priority:** High
 - **Dependencies:** TASK-5.1
 - **Acceptance Criteria:** Clean, modern options UI compliant with `design.md`.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-5.3: Settings Page Controller & Validation
 - **Description:** Implement `settings/settings.js` handling form inputs, numeric constraints, and save/reset triggers.
 - **Priority:** High
 - **Dependencies:** TASK-5.2
 - **Acceptance Criteria:** Disallows non-numeric input and displays error if `Commission + Tax >= 100%`.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-5.4: Reset to Defaults Functionality
 - **Description:** Provide one-click button restoring all settings to initial defaults (15% Comm, 9% Tax, $12 Profit, $9.98 Ded).
 - **Priority:** Medium
 - **Dependencies:** TASK-5.3
 - **Acceptance Criteria:** Storage is restored to exact factory defaults and UI inputs refresh immediately.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-5.5: Reactive Cross-Tab Storage Synchronization
 - **Description:** Listen to `chrome.storage.onChanged` in content script to update open calculator instances immediately.
 - **Priority:** High
 - **Dependencies:** TASK-5.1, TASK-4.2
 - **Acceptance Criteria:** Saving new settings in options tab immediately recalculates pricing in existing eBay tabs without refresh.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-5.6: Browser Action Quick Popup
 - **Description:** Implement `popup/popup.html` providing quick access to extension status and a direct link to the options page.
 - **Priority:** Low
 - **Dependencies:** TASK-5.1
 - **Acceptance Criteria:** Opens cleanly from Chrome toolbar.
-- **Status:** Pending
+- **Status:** Completed
 
 ### TASK-5.7: Storage Error Handling & In-Memory Fallback
 - **Description:** Implement memory fallback if `chrome.storage.local` is restricted or fails.
 - **Priority:** Low
 - **Dependencies:** TASK-5.1
 - **Acceptance Criteria:** Calculator continues functioning using in-memory state if storage API throws.
-- **Status:** Pending
+- **Status:** Completed
 
 ---
 

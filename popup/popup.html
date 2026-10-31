@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eBay to Amazon Profit Calculator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="header-brand">
+        <span class="brand-dot"></span>
+        <span class="brand-title">eBay → Amazon Calc</span>
+      </div>
+      <button id="btn-open-settings" class="btn-icon" title="Settings">⚙</button>
+    </header>
+
+    <div class="popup-status">
+      <div class="status-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-text">Active on eBay product pages</span>
+      </div>
+      <p class="status-desc">Navigate to any eBay item listing to see the floating profit calculator overlay.</p>
+    </div>
+
+    <div class="popup-section">
+      <span class="section-title">Active Configuration</span>
+      <div class="config-grid">
+        <div class="config-item">
+          <span class="config-label">Commission:</span>
+          <span class="config-val" id="cfg-commission">15.0%</span>
+        </div>
+        <div class="config-item">
+          <span class="config-label">Sales Tax:</span>
+          <span class="config-val" id="cfg-tax">9.0%</span>
+        </div>
+        <div class="config-item">
+          <span class="config-label">Target Profit:</span>
+          <span class="config-val" id="cfg-profit">$12.00</span>
+        </div>
+        <div class="config-item">
+          <span class="config-label">Deduction:</span>
+          <span class="config-val" id="cfg-deduction">$9.98</span>
+        </div>
+      </div>
+    </div>
+
+    <footer class="popup-footer">
+      <button id="btn-options-page" class="btn btn-primary">Configure Settings</button>
+    </footer>
+  </div>
+
+  <script src="../utils/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

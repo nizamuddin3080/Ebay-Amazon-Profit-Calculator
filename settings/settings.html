@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eBay to Amazon Profit Calculator — Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="settings-wrapper">
+    <div class="settings-container">
+      <!-- Header -->
+      <header class="settings-header">
+        <div class="header-icon">⚙</div>
+        <div>
+          <h1>Settings & Configuration</h1>
+          <p class="subtitle">eBay to Amazon Profit Calculator</p>
+        </div>
+      </header>
+
+      <!-- Error / Validation Banner -->
+      <div id="error-banner" class="error-banner" style="display: none;"></div>
+
+      <!-- Settings Form -->
+      <form id="settings-form" novalidate>
+        <!-- Card 1: Amazon Referral Commission -->
+        <div class="settings-card">
+          <div class="card-info">
+            <label for="commission-input" class="card-title">Amazon Referral Commission (%)</label>
+            <p class="card-desc">Standard Amazon category referral fee percentage.</p>
+          </div>
+          <div class="input-wrapper">
+            <input type="number" id="commission-input" class="settings-input" min="0" max="99.9" step="0.1" required />
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Sales Tax -->
+        <div class="settings-card">
+          <div class="card-info">
+            <label for="tax-input" class="card-title">Estimated Sales Tax (%)</label>
+            <p class="card-desc">Estimated customer sales tax rate.</p>
+          </div>
+          <div class="input-wrapper">
+            <input type="number" id="tax-input" class="settings-input" min="0" max="99.9" step="0.1" required />
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Target Net Profit -->
+        <div class="settings-card">
+          <div class="card-info">
+            <label for="profit-input" class="card-title">Target Net Profit ($)</label>
+            <p class="card-desc">Minimum target dollar profit per sold unit.</p>
+          </div>
+          <div class="input-wrapper">
+            <input type="number" id="profit-input" class="settings-input" step="0.5" required />
+            <span class="input-suffix">$</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Shipping Deduction -->
+        <div class="settings-card">
+          <div class="card-info">
+            <label for="deduction-input" class="card-title">Shipping Deduction ($)</label>
+            <p class="card-desc">Amount deducted to calculate the second (Without Shipping) selling price.</p>
+          </div>
+          <div class="input-wrapper">
+            <input type="number" id="deduction-input" class="settings-input" min="0" step="0.01" required />
+            <span class="input-suffix">$</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="settings-actions">
+          <button type="button" id="btn-reset" class="btn btn-secondary">Reset to Defaults</button>
+          <button type="submit" id="btn-save" class="btn btn-primary">Save Settings</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="../utils/storage.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
