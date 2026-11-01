@@ -280,8 +280,11 @@
           this.currentMode = 'SEARCH';
           this.searchProcessor = new window.SearchGridProcessor();
           this.searchProcessor.init();
+        } else if (this.lastProcessedUrl !== currentUrl) {
+          // User navigated to a new search query or pagination on search page
+          this.searchProcessor.handleSearchNavigation();
         } else {
-          // Already in Search mode; rescan new cards
+          // Already in Search mode; rescan cards
           this.searchProcessor.processAllCards();
         }
       } else {

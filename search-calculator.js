@@ -38,6 +38,9 @@
       this.isScanning = false;
       this.scanDebounceTimer = null;
       this.unsubscribeStorage = null;
+      this.retryTimers = [];
+      this.scrollHandler = null;
+      this.scrollDebounceTimer = null;
     }
 
     /**
@@ -74,8 +77,14 @@
         // 4. Mount floating status pill
         this.mountStatusPill();
 
-        // 5. Watch for dynamically loaded cards (infinite scroll, AJAX sorting/pagination)
+        // 5. Watch for dynamically loaded cards
         this.initMutationObserver();
+
+        // 6. Polling retry passes for cards rendered asynchronously
+        this.initRetryPasses();
+
+        // 7. Passive scroll listener for infinite scroll
+        this.initScrollListener();
       } catch (err) {
         console.error('[EAPC Search Processor] Initialization error:', err);
       }
@@ -85,9 +94,19 @@
      * Scans the document for uncalculated product cards.
      */
     processAllCards() {
-      if (typeof document === 'undefined') return;
+      if (typeof document === 'undefined') return 0;
 
-      const cardElements = document.querySelectorAll('.s-item, .b-list__item, [data-view*="mi:"]');
+      // Clean out dead / removed card references from earlier queries
+      for (const [card] of this.processedCards.entries()) {
+        if (!document.body.contains(card)) {
+          this.processedCards.delete(card);
+        }
+      }
+
+      // Broad card selectors covering standard, grid, and modular variations
+      const cardElements = document.querySelectorAll(
+        '.s-item, .s-card, li.s-item, li.s-card, .b-list__item, [data-view*="mi:"], ul.srp-results > li, .srp-results li'
+      );
       let newCount = 0;
 
       for (const card of cardElements) {
@@ -131,6 +150,8 @@
       const target = card.querySelector('.s-item__details') ||
                      card.querySelector('.s-item__info') ||
                      card.querySelector('.s-item__details-section') ||
+                     card.querySelector('.s-card__info') ||
+                     card.querySelector('.s-item__wrapper') ||
                      card;
 
       // Create isolated Shadow DOM host
@@ -523,13 +544,15 @@
     }
 
     /**
-     * Initializes debounced MutationObserver on the results container.
+     * Initializes debounced MutationObserver observing document.body.
      */
     initMutationObserver() {
       if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
 
-      const target = document.querySelector('.srp-results, .srp-river-results, #srp-river-results, .b-list__items_container, #mainContent') || document.body;
-      if (!target) return;
+      if (this.mutationObserver) {
+        this.mutationObserver.disconnect();
+        this.mutationObserver = null;
+      }
 
       this.mutationObserver = new MutationObserver(() => {
         clearTimeout(this.scanDebounceTimer);
@@ -538,10 +561,57 @@
         }, 200);
       });
 
-      this.mutationObserver.observe(target, {
+      // Always observe document.body so container replacements never unbind the observer
+      this.mutationObserver.observe(document.body, {
         childList: true,
         subtree: true
       });
+    }
+
+    /**
+     * Schedules consecutive retry scans to discover cards rendered by AJAX/hydration.
+     */
+    initRetryPasses() {
+      const delays = [300, 800, 1500, 3000, 5000];
+      for (const delay of delays) {
+        const timer = setTimeout(() => {
+          this.processAllCards();
+        }, delay);
+        this.retryTimers.push(timer);
+      }
+    }
+
+    /**
+     * Passive scroll listener ensuring infinite scroll additions are captured immediately.
+     */
+    initScrollListener() {
+      if (typeof window === 'undefined') return;
+      this.scrollHandler = () => {
+        clearTimeout(this.scrollDebounceTimer);
+        this.scrollDebounceTimer = setTimeout(() => {
+          this.processAllCards();
+        }, 200);
+      };
+      window.addEventListener('scroll', this.scrollHandler, { passive: true });
+    }
+
+    /**
+     * Resets state and re-scans when user executes a new search or changes filter/sort.
+     */
+    handleSearchNavigation() {
+      // Clear stale cards
+      for (const [card, info] of this.processedCards.entries()) {
+        if (info.host && info.host.parentNode) {
+          info.host.parentNode.removeChild(info.host);
+        }
+        delete card.dataset.eapcProcessed;
+      }
+      this.processedCards.clear();
+      this.updateStatusPill();
+
+      // Trigger immediate scan and schedule retry passes for the incoming results
+      this.processAllCards();
+      this.initRetryPasses();
     }
 
     /**
@@ -699,7 +769,7 @@
     }
 
     /**
-     * Cleans up observers, hosts, and listeners.
+     * Cleans up observers, hosts, timers, and listeners.
      */
     teardown() {
       if (this.mutationObserver) {
@@ -710,6 +780,21 @@
       if (this.scanDebounceTimer) {
         clearTimeout(this.scanDebounceTimer);
         this.scanDebounceTimer = null;
+      }
+
+      if (this.scrollDebounceTimer) {
+        clearTimeout(this.scrollDebounceTimer);
+        this.scrollDebounceTimer = null;
+      }
+
+      for (const t of this.retryTimers) {
+        clearTimeout(t);
+      }
+      this.retryTimers = [];
+
+      if (this.scrollHandler && typeof window !== 'undefined') {
+        window.removeEventListener('scroll', this.scrollHandler);
+        this.scrollHandler = null;
       }
 
       if (typeof this.unsubscribeStorage === 'function') {

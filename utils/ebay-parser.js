@@ -668,7 +668,8 @@
 
   /**
    * Parses search price string which can be a single price or a price range.
-   * Handles "$205.00", "$80.97 to $134.95", "$119.99 to $125.97", "19,99 € bis 29,99 €", etc.
+   * Handles "$205.00", "$80.97 to $134.95", "$119.99 to $125.97", "19,99 € bis 29,99 €",
+   * and tolerates trailing original / strikethrough prices (e.g. "$205.00 $225.00" or "$24.99 was $45.00").
    */
   function parseSearchPrice(rawPriceStr) {
     if (!rawPriceStr || typeof rawPriceStr !== 'string') {
@@ -682,8 +683,8 @@
       };
     }
 
-    const trimmed = rawPriceStr.trim();
-    if (!trimmed) {
+    let text = rawPriceStr.trim();
+    if (!text) {
       return {
         isRange: false,
         min: null,
@@ -694,19 +695,25 @@
       };
     }
 
-    // Split on range indicators: "to", "bis", "à", or dashes ("-", "–", "—") surrounded by spaces or digits
-    const rangeRegex = /\s+(?:to|bis|à)\s+|\s*[-–—]\s*/i;
-    const parts = trimmed.split(rangeRegex);
+    // Clean out explicit strikethrough / original price clauses
+    text = text.replace(/(?:Was|Previous\s+price|List\s+price|Originally)\s*:?\s*[\$£€A-Za-z0-9.,\s]+/i, '').trim();
 
-    if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
-      const minParsed = parseNormalizedPrice(parts[0]);
-      const maxParsed = parseNormalizedPrice(parts[1]);
+    // Check if string contains range indicators: "to", "bis", "à", or range dash
+    const isRangeString = /\b(?:to|bis|à)\b|[-–—]/i.test(text);
 
-      if (minParsed.value !== null && maxParsed.value !== null) {
-        const minVal = Math.min(minParsed.value, maxParsed.value);
-        const maxVal = Math.max(minParsed.value, maxParsed.value);
-        const currency = minParsed.currency || maxParsed.currency || 'USD';
-        const currencyState = (minParsed.currencyState === CURRENCY_STATE.KNOWN || maxParsed.currencyState === CURRENCY_STATE.KNOWN)
+    // Isolate formatted prices with currency symbols
+    const PRICE_REGEX = /(?:(?:US|C|AU|CA)\s*[\$£€¥₹]|[\$£€¥₹]|(?:USD|EUR|GBP|CAD|AUD))\s*([0-9]{1,3}(?:[,.][0-9]{3})*(?:[,.][0-9]{2})?|[0-9]+(?:[,.][0-9]{2})?)|([0-9]{1,3}(?:[,.][0-9]{3})*(?:[,.][0-9]{2})?|[0-9]+(?:[,.][0-9]{2})?)\s*(?:[\$£€¥₹]|EUR|GBP|USD|CAD|AUD)/gi;
+    const matches = [...text.matchAll(PRICE_REGEX)];
+
+    if (matches.length >= 2 && isRangeString) {
+      const p1 = parseNormalizedPrice(matches[0][0]);
+      const p2 = parseNormalizedPrice(matches[1][0]);
+
+      if (p1.value !== null && p2.value !== null) {
+        const minVal = Math.min(p1.value, p2.value);
+        const maxVal = Math.max(p1.value, p2.value);
+        const currency = p1.currency || p2.currency || 'USD';
+        const currencyState = (p1.currencyState === CURRENCY_STATE.KNOWN || p2.currencyState === CURRENCY_STATE.KNOWN)
           ? CURRENCY_STATE.KNOWN
           : CURRENCY_STATE.UNKNOWN_CURRENCY;
 
@@ -716,14 +723,29 @@
           max: maxVal,
           currency,
           currencyState,
-          raw: trimmed,
+          raw: text,
           error: null
         };
       }
     }
 
-    // Single price parsing
-    const singleParsed = parseNormalizedPrice(trimmed);
+    if (matches.length >= 1) {
+      const p1 = parseNormalizedPrice(matches[0][0]);
+      if (p1.value !== null) {
+        return {
+          isRange: false,
+          min: p1.value,
+          max: p1.value,
+          currency: p1.currency || 'USD',
+          currencyState: p1.currencyState,
+          raw: text,
+          error: null
+        };
+      }
+    }
+
+    // Direct fallback
+    const singleParsed = parseNormalizedPrice(text);
     if (singleParsed.value !== null) {
       return {
         isRange: false,
@@ -731,7 +753,7 @@
         max: singleParsed.value,
         currency: singleParsed.currency || 'USD',
         currencyState: singleParsed.currencyState,
-        raw: trimmed,
+        raw: text,
         error: null
       };
     }
@@ -742,13 +764,13 @@
       max: null,
       currency: singleParsed.currency || null,
       currencyState: singleParsed.currencyState,
-      raw: trimmed,
+      raw: text,
       error: singleParsed.error || 'Failed to parse search price'
     };
   }
 
   /**
-   * Extracts product card details from an eBay search / browse card (.s-item, .b-list__item).
+   * Extracts product card details from an eBay search / browse card (.s-item, .s-card, .b-list__item).
    */
   function extractSearchCardData(cardEl) {
     if (!cardEl || !cardEl.querySelector) {
@@ -756,13 +778,17 @@
     }
 
     // 1. Skip dummy / header / placeholder items (e.g. "Shop on eBay")
-    const linkEl = cardEl.querySelector('a.s-item__link, a[href*="/itm/"]');
-    if (!linkEl || !linkEl.href || linkEl.getAttribute('href') === '#') {
+    const linkEl = cardEl.querySelector(
+      'a.s-item__link, a.s-card__link, a[href*="/itm/"], a[href*="/p/"], .s-item__title a, a[href]:not([href="#"]):not([href=""])'
+    );
+    const linkHref = linkEl ? (linkEl.href || linkEl.getAttribute('href') || '') : '';
+
+    if (!linkHref || linkHref === '#' || linkHref.startsWith('javascript:')) {
       return { success: false, reason: 'Placeholder card without valid link' };
     }
 
     // 2. Extract and sanitize title
-    const titleEl = cardEl.querySelector('.s-item__title, [role="heading"]');
+    const titleEl = cardEl.querySelector('.s-item__title, .s-card__title, [role="heading"], h3');
     let rawTitle = titleEl ? titleEl.textContent.trim() : '';
     // Strip eBay's "New Listing" badge text if prefixed
     rawTitle = rawTitle.replace(/^New\s+Listing\s*/i, '').trim();
@@ -773,7 +799,9 @@
     }
 
     // 3. Extract and parse price
-    const priceEl = cardEl.querySelector('.s-item__price');
+    const priceEl = cardEl.querySelector(
+      '.s-item__price, .s-card__price, [data-testid*="price"], .s-item__detail--primary .s-item__price, .s-item__details .s-item__price'
+    );
     if (!priceEl) {
       return { success: false, reason: 'Price element not found' };
     }
@@ -781,7 +809,9 @@
     let rawPrice = '';
     if (typeof priceEl.cloneNode === 'function') {
       const clone = priceEl.cloneNode(true);
-      const strikes = clone.querySelectorAll ? clone.querySelectorAll('.STRIKETHROUGH, .s-item__strike, .s-item__trending-price') : [];
+      const strikes = clone.querySelectorAll
+        ? clone.querySelectorAll('.STRIKETHROUGH, .s-item__strike, .s-item__trending-price, .s-item__discount, span[style*="line-through"], .s-item__price--original')
+        : [];
       if (strikes && strikes.forEach) strikes.forEach(s => s.remove());
       rawPrice = clone.textContent.trim();
     } else {
@@ -794,20 +824,21 @@
     }
 
     // 4. Extract and parse shipping
-    const shippingEl = cardEl.querySelector('.s-item__shipping, .s-item__logisticsCost, .s-item__delivery, .s-item__freeXDays, .s-item__deliveryOptions, .s-item__details .s-item__shipping');
+    const shippingEl = cardEl.querySelector(
+      '.s-item__shipping, .s-item__logisticsCost, .s-item__delivery, .s-item__freeXDays, .s-item__deliveryOptions, .s-item__details .s-item__shipping, .s-card__shipping'
+    );
     const rawShipping = shippingEl ? shippingEl.textContent.trim() : '';
     const shippingInfo = parseShipping(rawShipping);
 
     // 5. Item ID and canonical URL
-    const url = linkEl.href;
-    const itemId = extractItemId(null, url);
+    const itemId = extractItemId(null, linkHref);
 
     return {
       success: true,
       title: rawTitle,
       priceData,
       shippingInfo,
-      url,
+      url: linkHref,
       itemId,
       cardElement: cardEl
     };
