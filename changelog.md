@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.2.0] - 2026-11-01
+
+### Added
+- **Dual Tax Pricing Options (0% Tax & Settings Tax):**
+  - **Simultaneous 4-Price Display:** Both **0% Tax (Exempt / Resale)** and **Settings Tax (as per configuration)** are computed and rendered simultaneously with and without shipping.
+  - **Direct 1-Click Copy Buttons:** Every price option (0% Tax With Shipping, 0% Tax W/O Shipping, Settings Tax With Shipping, Settings Tax W/O Shipping) features its own dedicated COPY button.
+  - **Cross-Platform Availability:** Integrated into both the Single Product Page Floating Calculator (`calculator.js`) and Multi-Product Search & Catalog Grid Cards (`search-calculator.js`).
+  - **Modern `.s-card` Delivery Extraction:** Robust parsing for eBay's modern `.s-card` vertical grid attribute rows (e.g. `+$6.65 delivery`).
+
+---
+
 ## [1.1.0] - 2026-11-01
 
 ### Added

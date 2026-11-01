@@ -117,10 +117,12 @@
       }
 
       let calcResult = null;
+      let calcResultZero = null;
 
       if (effectivePrice !== null && Number.isFinite(effectivePrice) && isShippingValid) {
         const totalProductCost = effectivePrice + effectiveShipping;
 
+        // Settings Tax Calculation
         calcResult = window.CalculatorEngine.calculate({
           productCost: totalProductCost,
           commissionRate: this.currentSettings ? this.currentSettings.amazonCommissionRate : 15.0,
@@ -128,9 +130,18 @@
           targetProfit: this.currentSettings ? this.currentSettings.targetProfitAmount : 12.0,
           shippingDeduction: this.currentSettings ? this.currentSettings.shippingDeduction : 9.98
         });
+
+        // 0% Tax Calculation (Exempt / Resale)
+        calcResultZero = window.CalculatorEngine.calculate({
+          productCost: totalProductCost,
+          commissionRate: this.currentSettings ? this.currentSettings.amazonCommissionRate : 15.0,
+          taxRate: 0,
+          targetProfit: this.currentSettings ? this.currentSettings.targetProfitAmount : 12.0,
+          shippingDeduction: this.currentSettings ? this.currentSettings.shippingDeduction : 9.98
+        });
       }
 
-      this.ui.update(this.currentDetails, this.currentSettings, calcResult);
+      this.ui.update(this.currentDetails, this.currentSettings, calcResult, calcResultZero);
     }
 
     /**

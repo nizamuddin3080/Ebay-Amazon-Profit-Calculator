@@ -214,8 +214,14 @@ runTest('TASK-4.2 & Phase 2 Integration: UI Calculation Rendering', () => {
   const root = ui.shadowRoot;
   assert.strictEqual(root.getElementById('eapc-item-title').textContent, 'Sony WH-1000XM4 Headphones');
   assert.strictEqual(root.getElementById('eapc-total-cost').textContent, '$50.00');
+  // Settings Tax (9%):
   assert.strictEqual(root.getElementById('eapc-price-with-ship').textContent, '$81.58');
   assert.strictEqual(root.getElementById('eapc-price-without-ship').textContent, '$71.60');
+
+  // 0% Tax (Exempt / Resale):
+  // (50 + 12) / 0.85 = 72.94, without ship = 72.94 - 9.98 = 62.96
+  assert.strictEqual(root.getElementById('eapc-price-with-ship-zero').textContent, '$72.94');
+  assert.strictEqual(root.getElementById('eapc-price-without-ship-zero').textContent, '$62.96');
   assert.strictEqual(root.getElementById('eapc-estimated-profit').textContent, '$12.00');
   assert.strictEqual(root.getElementById('eapc-profit-margin').textContent, '14.7%');
   assert.strictEqual(root.getElementById('eapc-roi').textContent, '24.0%');
@@ -313,6 +319,57 @@ runTest('TASK-4.6: Toast Notification Feedback Rendering', () => {
   ui.showToast('✕ Copy failed — please select manually', 'error');
   assert.strictEqual(toast.textContent, '✕ Copy failed — please select manually');
   assert(toast.className.includes('eapc-toast-error'));
+});
+
+// 8. Dual Tax Options Direct Copy Testing
+runTest('Dual Tax Options: Direct copy for 0% Tax and Settings Tax with & without shipping', async () => {
+  const doc = new MockDocument();
+  const ui = new ProfitCalculatorUI();
+  ui.mount(doc);
+
+  let copiedText = '';
+  ui.copyToClipboard = async (text) => {
+    copiedText = text;
+  };
+
+  const details = {
+    title: 'Dual Tax Test Item',
+    price: 45.0,
+    shippingState: 'KNOWN',
+    shippingCost: 5.0
+  };
+  const settings = {
+    amazonCommissionRate: 15.0,
+    sellTaxRate: 9.0,
+    targetProfitAmount: 12.0,
+    shippingDeduction: 9.98
+  };
+  const calcResult = CalculatorEngine.calculate({
+    productCost: 50.0,
+    commissionRate: 15.0,
+    taxRate: 9.0,
+    targetProfit: 12.0,
+    shippingDeduction: 9.98
+  });
+
+  ui.update(details, settings, calcResult);
+  const root = ui.shadowRoot;
+
+  // 1. Copy Settings Tax With Shipping
+  root.getElementById('eapc-btn-copy-with-ship').dispatchEvent({ type: 'click' });
+  assert.strictEqual(copiedText, '81.58');
+
+  // 2. Copy Settings Tax Without Shipping
+  root.getElementById('eapc-btn-copy-without-ship').dispatchEvent({ type: 'click' });
+  assert.strictEqual(copiedText, '71.60');
+
+  // 3. Copy 0% Tax With Shipping
+  root.getElementById('eapc-btn-copy-with-ship-zero').dispatchEvent({ type: 'click' });
+  assert.strictEqual(copiedText, '72.94');
+
+  // 4. Copy 0% Tax Without Shipping
+  root.getElementById('eapc-btn-copy-without-ship-zero').dispatchEvent({ type: 'click' });
+  assert.strictEqual(copiedText, '62.96');
 });
 
 console.log(`\nUI Test Run Complete: ${passedTests}/${totalTests} Passed.\n`);

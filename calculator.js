@@ -38,6 +38,7 @@
       this.dragOffset = { x: 0, y: 0 };
       this.currentDetails = null;
       this.currentCalcResult = null;
+      this.currentCalcResultZero = null;
       this.currentSettings = null;
       this.manualOverride = {
         price: { isOverridden: false, value: null },
@@ -159,23 +160,52 @@
 
             <!-- Selling Price Cards -->
             <div class="eapc-section">
-              <!-- Card 1: With Shipping -->
-              <div class="eapc-price-card eapc-price-card-primary">
-                <div class="eapc-card-info">
-                  <span class="eapc-card-label">With Shipping (Primary)</span>
-                  <span class="eapc-card-price eapc-text-profit" id="eapc-price-with-ship">$0.00</span>
+              <!-- Group 1: 0% Tax (Exempt / Resale) -->
+              <div class="eapc-tax-card-group">
+                <div class="eapc-tax-group-header">
+                  <span class="eapc-tax-pill eapc-tax-pill-zero">0% TAX (EXEMPT / RESALE)</span>
                 </div>
-                <button class="eapc-btn-copy-card" id="eapc-btn-copy-with-ship">COPY</button>
+                <!-- Card 1a: 0% Tax With Shipping -->
+                <div class="eapc-price-card eapc-price-card-primary">
+                  <div class="eapc-card-info">
+                    <span class="eapc-card-label">With Shipping (0% Tax)</span>
+                    <span class="eapc-card-price eapc-text-profit" id="eapc-price-with-ship-zero">$0.00</span>
+                  </div>
+                  <button class="eapc-btn-copy-card" id="eapc-btn-copy-with-ship-zero" title="Copy 0% Tax with shipping">COPY</button>
+                </div>
+                <!-- Card 1b: 0% Tax Without Shipping -->
+                <div class="eapc-price-card eapc-price-card-secondary" style="margin-top: 6px;">
+                  <div class="eapc-card-info">
+                    <span class="eapc-card-label">Without Shipping (0% Tax)</span>
+                    <span class="eapc-card-price eapc-text-blue" id="eapc-price-without-ship-zero">$0.00</span>
+                    <span class="eapc-card-sublabel" id="eapc-deduction-sublabel-zero">(-$9.98 deduction)</span>
+                  </div>
+                  <button class="eapc-btn-copy-card" id="eapc-btn-copy-without-ship-zero" title="Copy 0% Tax without shipping">COPY</button>
+                </div>
               </div>
 
-              <!-- Card 2: Without Shipping -->
-              <div class="eapc-price-card eapc-price-card-secondary" style="margin-top: 8px;">
-                <div class="eapc-card-info">
-                  <span class="eapc-card-label">Without Shipping</span>
-                  <span class="eapc-card-price eapc-text-blue" id="eapc-price-without-ship">$0.00</span>
-                  <span class="eapc-card-sublabel" id="eapc-deduction-sublabel">(-$9.98 deduction)</span>
+              <!-- Group 2: Settings Tax -->
+              <div class="eapc-tax-card-group" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--eapc-border);">
+                <div class="eapc-tax-group-header">
+                  <span class="eapc-tax-pill eapc-tax-pill-setting" id="eapc-tax-badge-setting">9% TAX (AS PER SETTINGS)</span>
                 </div>
-                <button class="eapc-btn-copy-card" id="eapc-btn-copy-without-ship">COPY</button>
+                <!-- Card 2a: Settings Tax With Shipping -->
+                <div class="eapc-price-card eapc-price-card-primary">
+                  <div class="eapc-card-info">
+                    <span class="eapc-card-label">With Shipping (Settings Tax)</span>
+                    <span class="eapc-card-price eapc-text-profit" id="eapc-price-with-ship">$0.00</span>
+                  </div>
+                  <button class="eapc-btn-copy-card" id="eapc-btn-copy-with-ship" title="Copy Settings tax with shipping">COPY</button>
+                </div>
+                <!-- Card 2b: Settings Tax Without Shipping -->
+                <div class="eapc-price-card eapc-price-card-secondary" style="margin-top: 6px;">
+                  <div class="eapc-card-info">
+                    <span class="eapc-card-label">Without Shipping (Settings Tax)</span>
+                    <span class="eapc-card-price eapc-text-blue" id="eapc-price-without-ship">$0.00</span>
+                    <span class="eapc-card-sublabel" id="eapc-deduction-sublabel">(-$9.98 deduction)</span>
+                  </div>
+                  <button class="eapc-btn-copy-card" id="eapc-btn-copy-without-ship" title="Copy Settings tax without shipping">COPY</button>
+                </div>
               </div>
             </div>
 
@@ -286,9 +316,11 @@
         });
       }
 
-      // Copy buttons
+      // Copy buttons for all 4 price options
       const btnCopyCardWithShip = root.getElementById('eapc-btn-copy-with-ship');
       const btnCopyCardNoShip = root.getElementById('eapc-btn-copy-without-ship');
+      const btnCopyCardWithShipZero = root.getElementById('eapc-btn-copy-with-ship-zero');
+      const btnCopyCardNoShipZero = root.getElementById('eapc-btn-copy-without-ship-zero');
       const btnActionCopyMain = root.getElementById('eapc-action-copy-main');
       const btnActionCopyAlt = root.getElementById('eapc-action-copy-alt');
 
@@ -304,10 +336,24 @@
         }
       };
 
+      const copyWithShipZeroAction = () => {
+        if (this.currentCalcResultZero && this.currentCalcResultZero.isValid) {
+          this.copyToClipboard(this.currentCalcResultZero.sellingPriceWithShipping.toFixed(2));
+        }
+      };
+
+      const copyNoShipZeroAction = () => {
+        if (this.currentCalcResultZero && this.currentCalcResultZero.isValid) {
+          this.copyToClipboard(this.currentCalcResultZero.sellingPriceWithoutShipping.toFixed(2));
+        }
+      };
+
       if (btnCopyCardWithShip) btnCopyCardWithShip.addEventListener('click', copyWithShipAction);
-      if (btnActionCopyMain) btnActionCopyMain.addEventListener('click', copyWithShipAction);
       if (btnCopyCardNoShip) btnCopyCardNoShip.addEventListener('click', copyNoShipAction);
-      if (btnActionCopyAlt) btnActionCopyAlt.addEventListener('click', copyNoShipAction);
+      if (btnCopyCardWithShipZero) btnCopyCardWithShipZero.addEventListener('click', copyWithShipZeroAction);
+      if (btnCopyCardNoShipZero) btnCopyCardNoShipZero.addEventListener('click', copyNoShipZeroAction);
+      if (btnActionCopyMain) btnActionCopyMain.addEventListener('click', copyWithShipAction);
+      if (btnActionCopyAlt) btnActionCopyAlt.addEventListener('click', copyWithShipZeroAction);
 
       // Drag and drop mechanics
       this.initDragging();
@@ -469,10 +515,31 @@
     /**
      * Updates calculator UI with freshly extracted details, active settings, and calculation results.
      */
-    update(details, settings, calcResult) {
+    update(details, settings, calcResult, calcResultZero = null) {
       this.currentDetails = details;
       this.currentSettings = settings;
       this.currentCalcResult = calcResult;
+
+      // Automatically calculate 0% tax if not passed by caller
+      if (!calcResultZero && details && CalculatorEngine && CalculatorEngine.calculate) {
+        const effectivePrice = this.manualOverride.price.isOverridden
+          ? this.manualOverride.price.value
+          : (details ? details.price : null);
+        const effectiveShipping = this.manualOverride.shipping.isOverridden
+          ? this.manualOverride.shipping.value
+          : (details ? details.shippingCost : 0);
+
+        if (effectivePrice !== null && Number.isFinite(effectivePrice) && (details.shippingState !== 'UNKNOWN' || this.manualOverride.shipping.isOverridden)) {
+          calcResultZero = CalculatorEngine.calculate({
+            productCost: effectivePrice + (effectiveShipping || 0),
+            commissionRate: settings ? settings.amazonCommissionRate : 15.0,
+            taxRate: 0,
+            targetProfit: settings ? settings.targetProfitAmount : 12.0,
+            shippingDeduction: settings ? settings.shippingDeduction : 9.98
+          });
+        }
+      }
+      this.currentCalcResultZero = calcResultZero;
 
       const root = this.shadowRoot;
       if (!root) return;
@@ -541,10 +608,18 @@
         elSettingsSummary.textContent = `Comm: ${settings.amazonCommissionRate || 15}% • Tax: ${settings.sellTaxRate || 9}% • Target: $${(settings.targetProfitAmount || 12).toFixed(2)} • Ded: $${(settings.shippingDeduction || 9.98).toFixed(2)}`;
       }
 
-      // Deduction sublabel
+      // Deduction sublabels
       const elDedSublabel = root.getElementById('eapc-deduction-sublabel');
       if (elDedSublabel && settings) {
         elDedSublabel.textContent = `(-$${(settings.shippingDeduction || 9.98).toFixed(2)} deduction)`;
+      }
+      const elDedSublabelZero = root.getElementById('eapc-deduction-sublabel-zero');
+      if (elDedSublabelZero && settings) {
+        elDedSublabelZero.textContent = `(-$${(settings.shippingDeduction || 9.98).toFixed(2)} deduction)`;
+      }
+      const elTaxBadgeSetting = root.getElementById('eapc-tax-badge-setting');
+      if (elTaxBadgeSetting && settings) {
+        elTaxBadgeSetting.textContent = `${settings.sellTaxRate || 9}% TAX (AS PER SETTINGS)`;
       }
 
       // Warning Banner Container
@@ -579,6 +654,8 @@
       // Render Calculation Cards & Summary
       const elPriceWithShip = root.getElementById('eapc-price-with-ship');
       const elPriceNoShip = root.getElementById('eapc-price-without-ship');
+      const elPriceWithShipZero = root.getElementById('eapc-price-with-ship-zero');
+      const elPriceNoShipZero = root.getElementById('eapc-price-without-ship-zero');
       const elTargetProfit = root.getElementById('eapc-target-profit');
       const elEstProfit = root.getElementById('eapc-estimated-profit');
       const elMargin = root.getElementById('eapc-profit-margin');
@@ -590,6 +667,8 @@
       if (isPaused || !calcResult || !calcResult.isValid) {
         if (elPriceWithShip) elPriceWithShip.textContent = '--';
         if (elPriceNoShip) elPriceNoShip.textContent = '--';
+        if (elPriceWithShipZero) elPriceWithShipZero.textContent = '--';
+        if (elPriceNoShipZero) elPriceNoShipZero.textContent = '--';
         if (elEstProfit) elEstProfit.textContent = '--';
         if (elMargin) elMargin.textContent = 'N/A';
         if (elRoi) elRoi.textContent = 'N/A';
@@ -597,12 +676,19 @@
       } else {
         if (elPriceWithShip) elPriceWithShip.textContent = calcResult.formatted.sellingPriceWithShipping;
         if (elPriceNoShip) elPriceNoShip.textContent = calcResult.formatted.sellingPriceWithoutShipping;
+        if (elPriceWithShipZero && this.currentCalcResultZero) {
+          elPriceWithShipZero.textContent = this.currentCalcResultZero.formatted.sellingPriceWithShipping;
+        }
+        if (elPriceNoShipZero && this.currentCalcResultZero) {
+          elPriceNoShipZero.textContent = this.currentCalcResultZero.formatted.sellingPriceWithoutShipping;
+        }
         if (elTargetProfit && settings) elTargetProfit.textContent = `$${(settings.targetProfitAmount || 12).toFixed(2)}`;
         if (elEstProfit) elEstProfit.textContent = calcResult.formatted.estimatedProfit;
         if (elMargin) elMargin.textContent = calcResult.formatted.profitMargin;
         if (elRoi) elRoi.textContent = calcResult.formatted.roi;
         if (pillText) {
-          pillText.textContent = `Amazon: ${calcResult.formatted.sellingPriceWithShipping} | Profit: ${calcResult.formatted.estimatedProfit}`;
+          const zeroShipText = this.currentCalcResultZero ? this.currentCalcResultZero.formatted.sellingPriceWithShipping : '--';
+          pillText.textContent = `0%: ${zeroShipText} | Tax: ${calcResult.formatted.sellingPriceWithShipping} | Profit: ${calcResult.formatted.estimatedProfit}`;
         }
       }
     }
@@ -756,7 +842,12 @@
         .eapc-settings-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: rgba(30,41,59,0.5); border-bottom: 1px solid var(--eapc-border); font-size: 10px; color: var(--eapc-text-muted); cursor: pointer; }
         .eapc-banner-paused { background: rgba(245,158,11,0.15); border-bottom: 1px solid rgba(245,158,11,0.3); padding: 8px 12px; font-size: 11px; color: var(--eapc-accent-amber); display: flex; align-items: center; gap: 6px; }
         .eapc-banner-error { background: rgba(239,68,68,0.15); border-bottom: 1px solid rgba(239,68,68,0.3); padding: 8px 12px; font-size: 11px; color: var(--eapc-accent-rose); display: flex; align-items: center; gap: 6px; }
-        .eapc-price-card { background: var(--eapc-bg-surface); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--eapc-border); }
+        .eapc-tax-card-group { margin-bottom: 0; }
+        .eapc-tax-group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .eapc-tax-pill { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 4px; }
+        .eapc-tax-pill-zero { color: #38bdf8; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); }
+        .eapc-tax-pill-setting { color: #a78bfa; background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3); }
+        .eapc-price-card { background: var(--eapc-bg-surface); border-radius: 8px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--eapc-border); }
         .eapc-price-card-primary { border-color: rgba(16,185,129,0.4); }
         .eapc-price-card-secondary { border-color: rgba(59,130,246,0.4); }
         .eapc-card-info { display: flex; flex-direction: column; }

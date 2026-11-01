@@ -196,24 +196,43 @@
         : 0.0;
 
       const isShippingUnknown = (shippingInfo && shippingInfo.state === 'UNKNOWN');
+      const settingTaxRate = (settings.sellTaxRate !== undefined && settings.sellTaxRate !== null)
+        ? settings.sellTaxRate
+        : 9.0;
 
       if (priceData.isRange) {
-        // Price Range: calculate min and max bounds
+        // Price Range: calculate min and max bounds for both 0% Tax and Setting Tax
         const minCost = priceData.min + shippingCost;
         const maxCost = priceData.max + shippingCost;
 
-        const calcMin = engine.calculate({
+        // 1. 0% Tax
+        const calcZeroMin = engine.calculate({
           productCost: minCost,
           commissionRate: settings.amazonCommissionRate,
-          taxRate: settings.sellTaxRate,
+          taxRate: 0,
+          targetProfit: settings.targetProfitAmount,
+          shippingDeduction: settings.shippingDeduction
+        });
+        const calcZeroMax = engine.calculate({
+          productCost: maxCost,
+          commissionRate: settings.amazonCommissionRate,
+          taxRate: 0,
           targetProfit: settings.targetProfitAmount,
           shippingDeduction: settings.shippingDeduction
         });
 
-        const calcMax = engine.calculate({
+        // 2. Settings Tax
+        const calcSettingMin = engine.calculate({
+          productCost: minCost,
+          commissionRate: settings.amazonCommissionRate,
+          taxRate: settingTaxRate,
+          targetProfit: settings.targetProfitAmount,
+          shippingDeduction: settings.shippingDeduction
+        });
+        const calcSettingMax = engine.calculate({
           productCost: maxCost,
           commissionRate: settings.amazonCommissionRate,
-          taxRate: settings.sellTaxRate,
+          taxRate: settingTaxRate,
           targetProfit: settings.targetProfitAmount,
           shippingDeduction: settings.shippingDeduction
         });
@@ -222,31 +241,77 @@
           isRange: true,
           isShippingUnknown,
           currency: priceData.currency || 'USD',
+          settingTaxRate,
+          // 0% Tax Option
+          zeroTax: {
+            withShip: {
+              display: `${calcZeroMin.formatted.sellingPriceWithShipping} – ${calcZeroMax.formatted.sellingPriceWithShipping}`,
+              copyVal: `${calcZeroMin.sellingPriceWithShipping.toFixed(2)} - ${calcZeroMax.sellingPriceWithShipping.toFixed(2)}`,
+              minNum: calcZeroMin.sellingPriceWithShipping,
+              maxNum: calcZeroMax.sellingPriceWithShipping
+            },
+            noShip: {
+              display: `${calcZeroMin.formatted.sellingPriceWithoutShipping} – ${calcZeroMax.formatted.sellingPriceWithoutShipping}`,
+              copyVal: `${calcZeroMin.sellingPriceWithoutShipping.toFixed(2)} - ${calcZeroMax.sellingPriceWithoutShipping.toFixed(2)}`,
+              minNum: calcZeroMin.sellingPriceWithoutShipping,
+              maxNum: calcZeroMax.sellingPriceWithoutShipping
+            },
+            marginDisplay: `${calcZeroMax.formatted.profitMargin} – ${calcZeroMin.formatted.profitMargin}`,
+            roiDisplay: `${calcZeroMax.formatted.roi} – ${calcZeroMin.formatted.roi}`
+          },
+          // Settings Tax Option
+          settingTax: {
+            withShip: {
+              display: `${calcSettingMin.formatted.sellingPriceWithShipping} – ${calcSettingMax.formatted.sellingPriceWithShipping}`,
+              copyVal: `${calcSettingMin.sellingPriceWithShipping.toFixed(2)} - ${calcSettingMax.sellingPriceWithShipping.toFixed(2)}`,
+              minNum: calcSettingMin.sellingPriceWithShipping,
+              maxNum: calcSettingMax.sellingPriceWithShipping
+            },
+            noShip: {
+              display: `${calcSettingMin.formatted.sellingPriceWithoutShipping} – ${calcSettingMax.formatted.sellingPriceWithoutShipping}`,
+              copyVal: `${calcSettingMin.sellingPriceWithoutShipping.toFixed(2)} - ${calcSettingMax.sellingPriceWithoutShipping.toFixed(2)}`,
+              minNum: calcSettingMin.sellingPriceWithoutShipping,
+              maxNum: calcSettingMax.sellingPriceWithoutShipping
+            },
+            marginDisplay: `${calcSettingMax.formatted.profitMargin} – ${calcSettingMin.formatted.profitMargin}`,
+            roiDisplay: `${calcSettingMax.formatted.roi} – ${calcSettingMin.formatted.roi}`
+          },
+          // Backward compatibility aliases (default to Settings Tax)
           withShip: {
-            display: `${calcMin.formatted.sellingPriceWithShipping} – ${calcMax.formatted.sellingPriceWithShipping}`,
-            copyVal: `${calcMin.sellingPriceWithShipping.toFixed(2)} - ${calcMax.sellingPriceWithShipping.toFixed(2)}`,
-            minNum: calcMin.sellingPriceWithShipping,
-            maxNum: calcMax.sellingPriceWithShipping
+            display: `${calcSettingMin.formatted.sellingPriceWithShipping} – ${calcSettingMax.formatted.sellingPriceWithShipping}`,
+            copyVal: `${calcSettingMin.sellingPriceWithShipping.toFixed(2)} - ${calcSettingMax.sellingPriceWithShipping.toFixed(2)}`,
+            minNum: calcSettingMin.sellingPriceWithShipping,
+            maxNum: calcSettingMax.sellingPriceWithShipping
           },
           noShip: {
-            display: `${calcMin.formatted.sellingPriceWithoutShipping} – ${calcMax.formatted.sellingPriceWithoutShipping}`,
-            copyVal: `${calcMin.sellingPriceWithoutShipping.toFixed(2)} - ${calcMax.sellingPriceWithoutShipping.toFixed(2)}`,
-            minNum: calcMin.sellingPriceWithoutShipping,
-            maxNum: calcMax.sellingPriceWithoutShipping
+            display: `${calcSettingMin.formatted.sellingPriceWithoutShipping} – ${calcSettingMax.formatted.sellingPriceWithoutShipping}`,
+            copyVal: `${calcSettingMin.sellingPriceWithoutShipping.toFixed(2)} - ${calcSettingMax.sellingPriceWithoutShipping.toFixed(2)}`,
+            minNum: calcSettingMin.sellingPriceWithoutShipping,
+            maxNum: calcSettingMax.sellingPriceWithoutShipping
           },
           targetProfit: `$${settings.targetProfitAmount.toFixed(2)}`,
           estProfit: `$${settings.targetProfitAmount.toFixed(2)}`,
-          marginDisplay: `${calcMax.formatted.profitMargin} – ${calcMin.formatted.profitMargin}`,
-          roiDisplay: `${calcMax.formatted.roi} – ${calcMin.formatted.roi}`
+          marginDisplay: `${calcSettingMax.formatted.profitMargin} – ${calcSettingMin.formatted.profitMargin}`,
+          roiDisplay: `${calcSettingMax.formatted.roi} – ${calcSettingMin.formatted.roi}`
         };
       } else {
-        // Single Price
+        // Single Price: calculate both 0% Tax and Settings Tax
         const cost = priceData.min + shippingCost;
 
-        const calc = engine.calculate({
+        // 1. 0% Tax
+        const calcZero = engine.calculate({
           productCost: cost,
           commissionRate: settings.amazonCommissionRate,
-          taxRate: settings.sellTaxRate,
+          taxRate: 0,
+          targetProfit: settings.targetProfitAmount,
+          shippingDeduction: settings.shippingDeduction
+        });
+
+        // 2. Settings Tax
+        const calcSetting = engine.calculate({
+          productCost: cost,
+          commissionRate: settings.amazonCommissionRate,
+          taxRate: settingTaxRate,
           targetProfit: settings.targetProfitAmount,
           shippingDeduction: settings.shippingDeduction
         });
@@ -255,20 +320,52 @@
           isRange: false,
           isShippingUnknown,
           currency: priceData.currency || 'USD',
+          settingTaxRate,
+          // 0% Tax Option
+          zeroTax: {
+            withShip: {
+              display: calcZero.formatted.sellingPriceWithShipping,
+              copyVal: calcZero.sellingPriceWithShipping.toFixed(2),
+              num: calcZero.sellingPriceWithShipping
+            },
+            noShip: {
+              display: calcZero.formatted.sellingPriceWithoutShipping,
+              copyVal: calcZero.sellingPriceWithoutShipping.toFixed(2),
+              num: calcZero.sellingPriceWithoutShipping
+            },
+            marginDisplay: calcZero.formatted.profitMargin,
+            roiDisplay: calcZero.formatted.roi
+          },
+          // Settings Tax Option
+          settingTax: {
+            withShip: {
+              display: calcSetting.formatted.sellingPriceWithShipping,
+              copyVal: calcSetting.sellingPriceWithShipping.toFixed(2),
+              num: calcSetting.sellingPriceWithShipping
+            },
+            noShip: {
+              display: calcSetting.formatted.sellingPriceWithoutShipping,
+              copyVal: calcSetting.sellingPriceWithoutShipping.toFixed(2),
+              num: calcSetting.sellingPriceWithoutShipping
+            },
+            marginDisplay: calcSetting.formatted.profitMargin,
+            roiDisplay: calcSetting.formatted.roi
+          },
+          // Backward compatibility aliases (default to Settings Tax)
           withShip: {
-            display: calc.formatted.sellingPriceWithShipping,
-            copyVal: calc.sellingPriceWithShipping.toFixed(2),
-            num: calc.sellingPriceWithShipping
+            display: calcSetting.formatted.sellingPriceWithShipping,
+            copyVal: calcSetting.sellingPriceWithShipping.toFixed(2),
+            num: calcSetting.sellingPriceWithShipping
           },
           noShip: {
-            display: calc.formatted.sellingPriceWithoutShipping,
-            copyVal: calc.sellingPriceWithoutShipping.toFixed(2),
-            num: calc.sellingPriceWithoutShipping
+            display: calcSetting.formatted.sellingPriceWithoutShipping,
+            copyVal: calcSetting.sellingPriceWithoutShipping.toFixed(2),
+            num: calcSetting.sellingPriceWithoutShipping
           },
           targetProfit: `$${settings.targetProfitAmount.toFixed(2)}`,
-          estProfit: calc.formatted.estimatedProfit,
-          marginDisplay: calc.formatted.profitMargin,
-          roiDisplay: calc.formatted.roi
+          estProfit: calcSetting.formatted.estimatedProfit,
+          marginDisplay: calcSetting.formatted.profitMargin,
+          roiDisplay: calcSetting.formatted.roi
         };
       }
     }
@@ -333,11 +430,47 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
           }
 
+          .eapc-tax-section {
+            padding: 3px 0;
+          }
+
+          .eapc-tax-section-divider {
+            margin-top: 4px;
+            padding-top: 5px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.12);
+          }
+
+          .eapc-tax-header {
+            margin-bottom: 2px;
+          }
+
+          .eapc-tax-pill {
+            display: inline-block;
+            font-size: 8.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 1px 5px;
+            border-radius: 3px;
+          }
+
+          .eapc-tax-pill-zero {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.14);
+            border: 1px solid rgba(56, 189, 248, 0.28);
+          }
+
+          .eapc-tax-pill-setting {
+            color: #a78bfa;
+            background: rgba(167, 139, 250, 0.14);
+            border: 1px solid rgba(167, 139, 250, 0.28);
+          }
+
           .eapc-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 3px 0;
+            padding: 2.5px 0;
           }
 
           .eapc-label {
@@ -424,19 +557,45 @@
             <span class="eapc-target-pill">Target: ${calcData.targetProfit}</span>
           </div>
 
-          <div class="eapc-row">
-            <span class="eapc-label eapc-label-with-ship">With Shipping</span>
-            <div class="eapc-price-box">
-              <span class="eapc-price">${calcData.withShip.display}</span>
-              <button class="eapc-btn-copy" data-copy="${calcData.withShip.copyVal}" title="Copy to clipboard">Copy</button>
+          <!-- Option 1: 0% Tax -->
+          <div class="eapc-tax-section">
+            <div class="eapc-tax-header">
+              <span class="eapc-tax-pill eapc-tax-pill-zero">0% TAX (EXEMPT)</span>
+            </div>
+            <div class="eapc-row">
+              <span class="eapc-label eapc-label-with-ship">With Ship</span>
+              <div class="eapc-price-box">
+                <span class="eapc-price">${calcData.zeroTax ? calcData.zeroTax.withShip.display : calcData.withShip.display}</span>
+                <button class="eapc-btn-copy" data-copy="${calcData.zeroTax ? calcData.zeroTax.withShip.copyVal : calcData.withShip.copyVal}" title="Copy 0% Tax with shipping">Copy</button>
+              </div>
+            </div>
+            <div class="eapc-row">
+              <span class="eapc-label eapc-label-no-ship">W/O Ship</span>
+              <div class="eapc-price-box">
+                <span class="eapc-price">${calcData.zeroTax ? calcData.zeroTax.noShip.display : calcData.noShip.display}</span>
+                <button class="eapc-btn-copy" data-copy="${calcData.zeroTax ? calcData.zeroTax.noShip.copyVal : calcData.noShip.copyVal}" title="Copy 0% Tax without shipping">Copy</button>
+              </div>
             </div>
           </div>
 
-          <div class="eapc-row">
-            <span class="eapc-label eapc-label-no-ship">W/O Shipping</span>
-            <div class="eapc-price-box">
-              <span class="eapc-price">${calcData.noShip.display}</span>
-              <button class="eapc-btn-copy" data-copy="${calcData.noShip.copyVal}" title="Copy to clipboard">Copy</button>
+          <!-- Option 2: Settings Tax -->
+          <div class="eapc-tax-section eapc-tax-section-divider">
+            <div class="eapc-tax-header">
+              <span class="eapc-tax-pill eapc-tax-pill-setting">${calcData.settingTaxRate || 9}% TAX (SETTINGS)</span>
+            </div>
+            <div class="eapc-row">
+              <span class="eapc-label eapc-label-with-ship">With Ship</span>
+              <div class="eapc-price-box">
+                <span class="eapc-price">${calcData.settingTax ? calcData.settingTax.withShip.display : calcData.withShip.display}</span>
+                <button class="eapc-btn-copy" data-copy="${calcData.settingTax ? calcData.settingTax.withShip.copyVal : calcData.withShip.copyVal}" title="Copy Settings tax with shipping">Copy</button>
+              </div>
+            </div>
+            <div class="eapc-row">
+              <span class="eapc-label eapc-label-no-ship">W/O Ship</span>
+              <div class="eapc-price-box">
+                <span class="eapc-price">${calcData.settingTax ? calcData.settingTax.noShip.display : calcData.noShip.display}</span>
+                <button class="eapc-btn-copy" data-copy="${calcData.settingTax ? calcData.settingTax.noShip.copyVal : calcData.noShip.copyVal}" title="Copy Settings tax without shipping">Copy</button>
+              </div>
             </div>
           </div>
 

@@ -3,7 +3,7 @@
 <div align="center">
 
 [![Manifest V3](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white)](manifest.json)
-[![Tests Passing](https://img.shields.io/badge/Tests-75%2F75%20Passing-10B981?logo=node.js&logoColor=white)](tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-80%2F80%20Passing-10B981?logo=node.js&logoColor=white)](tests/)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-0%20(Pure%20Vanilla%20JS)-3B82F6)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](LICENSE)
 [![Platform: Chromium](https://img.shields.io/badge/Platform-Chromium%20%7C%20Edge%20%7C%20Brave-9333EA)](manifest.json)
@@ -104,6 +104,12 @@ Computes exact selling prices using unrounded IEEE 754 double-precision arithmet
 - **1-Click Copy Buttons:** Direct copy actions for Amazon prices embedded inside each card with affirmative visual feedback (`✓ Copied!`) and click propagation stoppage.
 - **Dynamic Mutation Monitoring:** Automatically calculates newly loaded items during infinite scroll, AJAX pagination, and sidebar filter adjustments.
 - **Floating Status & Settings Pill:** Non-intrusive floating status bar in bottom-right corner displaying calculated product count (`⚡ EAPC: X items`), current commission/target profit, and instant settings shortcut.
+
+### 🏷️ 9. Dual Tax Pricing Mode (0% Tax & Settings Tax)
+- **Simultaneous 4-Price Display:** Both **0% Tax (Exempt / Resale)** and **Settings Tax (e.g. 9%)** are computed and rendered simultaneously with and without shipping.
+- **Dedicated 1-Click Copy Buttons:** Every individual price option (0% Tax With Shipping, 0% Tax W/O Shipping, Settings Tax With Shipping, Settings Tax W/O Shipping) has its own independent, direct COPY button.
+- **Available on All Pages:** Present on both the Single Product Detail floating panel (`/itm/*`) and Search & Catalog Grid cards (`/sch/*`, `/b/*`).
+- **Modern `.s-card` Extraction:** Seamlessly parses delivery fees from modern eBay vertical grid attribute rows (e.g., `+$6.65 delivery`).
 
 ---
 

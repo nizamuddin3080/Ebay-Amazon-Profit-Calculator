@@ -693,11 +693,19 @@ runTest('Modern .s-card: Haggar pants with +$6.65 delivery calculates $49.54 / $
   assert.ok(host, 'Host not mounted on .s-card');
   const cardHtml = host.shadowRoot.innerHTML;
 
-  // Cost: $19.00 + $6.65 = $25.65
+  // Settings Tax (9%):
   // With Shipping: (25.65 + 12) / 0.76 = 37.65 / 0.76 = $49.54
   // Without Shipping: 49.539 - 9.98 = $39.56
   assert.ok(cardHtml.includes('$49.54'), `Expected $49.54 with shipping, got: ${cardHtml}`);
   assert.ok(cardHtml.includes('$39.56'), `Expected $39.56 without shipping, got: ${cardHtml}`);
+
+  // 0% Tax (Exempt / Resale):
+  // With Shipping: (25.65 + 12) / 0.85 = 37.65 / 0.85 = $44.29
+  // Without Shipping: 44.294 - 9.98 = $34.31
+  assert.ok(cardHtml.includes('$44.29'), `Expected $44.29 for 0% tax with shipping, got: ${cardHtml}`);
+  assert.ok(cardHtml.includes('$34.31'), `Expected $34.31 for 0% tax without shipping, got: ${cardHtml}`);
+  assert.ok(cardHtml.includes('0% TAX (EXEMPT)'), 'Missing 0% tax section header');
+  assert.ok(cardHtml.includes('9% TAX (SETTINGS)'), 'Missing Settings tax section header');
   assert.ok(!cardHtml.includes('Shipping unspecified'), 'Unexpected warning: Shipping unspecified should NOT be present');
 
   processor.teardown();
