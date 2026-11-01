@@ -148,6 +148,8 @@
 
       // Find insertion target within the card
       const target = card.querySelector('.s-item__details') ||
+                     card.querySelector('.su-card-container__attributes__primary') ||
+                     card.querySelector('.su-card-container__attributes') ||
                      card.querySelector('.s-item__info') ||
                      card.querySelector('.s-item__details-section') ||
                      card.querySelector('.s-card__info') ||

@@ -823,11 +823,42 @@
       return { success: false, reason: 'Failed to parse price', rawPrice };
     }
 
-    // 4. Extract and parse shipping
-    const shippingEl = cardEl.querySelector(
-      '.s-item__shipping, .s-item__logisticsCost, .s-item__delivery, .s-item__freeXDays, .s-item__deliveryOptions, .s-item__details .s-item__shipping, .s-card__shipping'
-    );
-    const rawShipping = shippingEl ? shippingEl.textContent.trim() : '';
+    // 4. Extract and parse shipping (supports .s-item, modern .s-card, and attribute rows)
+    let rawShipping = '';
+    const shippingCandidates = cardEl.querySelectorAll
+      ? cardEl.querySelectorAll(
+          '.s-item__shipping, .s-item__logisticsCost, .s-item__dynamicShipping, .s-item__delivery, .s-card__shipping, .s-card__attribute-row, [class*="shipping"], [class*="logisticsCost"], [class*="delivery"]'
+        )
+      : [cardEl.querySelector('.s-item__shipping, .s-item__logisticsCost, .s-item__delivery, .s-card__shipping')].filter(Boolean);
+
+    for (const el of shippingCandidates) {
+      const text = el.textContent ? el.textContent.trim() : '';
+      if (!text) continue;
+      // Must contain delivery, shipping, postage, or free, or +$ pattern
+      if (/free\s*(?:delivery|shipping|postage)?|\+\s*[\$£€\d]|\$\d+(\.\d{2})?\s*(?:delivery|shipping|postage)|\b(?:delivery|shipping|postage)\b/i.test(text)) {
+        // Exclude return policy text like "Free returns" or "Returns accepted" if it does not explicitly mention delivery/shipping
+        if (/returns?\s*(?:accepted|not\s*accepted|free)?/i.test(text) && !/delivery|shipping|postage|\+\s*[\$£€\d]/i.test(text)) {
+          continue;
+        }
+        rawShipping = text;
+        break;
+      }
+    }
+
+    // Fallback: search leaf text nodes inside the card
+    if (!rawShipping && cardEl.querySelectorAll) {
+      const textNodes = cardEl.querySelectorAll('span, div');
+      for (const el of textNodes) {
+        if (!el.children || el.children.length === 0) {
+          const text = el.textContent ? el.textContent.trim() : '';
+          if (/\+\s*[\$£€\d]|free\s*(?:delivery|shipping|postage)|\$\d+(\.\d{2})?\s*(?:delivery|shipping|postage)/i.test(text)) {
+            rawShipping = text;
+            break;
+          }
+        }
+      }
+    }
+
     const shippingInfo = parseShipping(rawShipping);
 
     // 5. Item ID and canonical URL

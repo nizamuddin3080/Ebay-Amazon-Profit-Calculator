@@ -630,6 +630,80 @@ runTest('Status Pill: Mounts and cleans up on teardown', () => {
   assert.strictEqual(mockBody.querySelector('.eapc-search-status-host'), null);
 });
 
+// 10. Modern .s-card Layout: Haggar Pants with +$6.65 delivery
+runTest('Modern .s-card: Haggar pants with +$6.65 delivery calculates $49.54 / $39.56', () => {
+  const card = new MockElement('li');
+  card.className = 's-card s-card--vertical';
+
+  const container = new MockElement('div');
+  container.className = 'su-card-container';
+  card.appendChild(container);
+
+  const header = new MockElement('div');
+  header.className = 'su-card-container__header';
+  container.appendChild(header);
+
+  const link = new MockElement('a');
+  link.className = 's-card__link';
+  link.href = 'https://www.ebay.com/itm/318926210701';
+  link.setAttribute('href', 'https://www.ebay.com/itm/318926210701');
+  header.appendChild(link);
+
+  const title = new MockElement('div');
+  title.className = 's-card__title';
+  title.textContent = "Haggar Men's Performance Comfort Stretch Dress Pant Khaki 32x30 NWT MSRP $70";
+  link.appendChild(title);
+
+  const attrs = new MockElement('div');
+  attrs.className = 'su-card-container__attributes__primary';
+  container.appendChild(attrs);
+
+  const priceRow = new MockElement('div');
+  priceRow.className = 's-card__attribute-row';
+  const priceSpan = new MockElement('span');
+  priceSpan.className = 's-card__price';
+  priceSpan.textContent = '$19.00';
+  priceRow.appendChild(priceSpan);
+  attrs.appendChild(priceRow);
+
+  const buyNowRow = new MockElement('div');
+  buyNowRow.className = 's-card__attribute-row';
+  buyNowRow.textContent = 'Buy It Now';
+  attrs.appendChild(buyNowRow);
+
+  const shipRow = new MockElement('div');
+  shipRow.className = 's-card__attribute-row';
+  shipRow.textContent = '+$6.65 delivery';
+  attrs.appendChild(shipRow);
+
+  mockBody.appendChild(card);
+
+  const processor = new SearchGridProcessor();
+  processor.currentSettings = {
+    amazonCommissionRate: 15.0,
+    sellTaxRate: 9.0,
+    targetProfitAmount: 12.00,
+    shippingDeduction: 9.98
+  };
+
+  const processed = processor.processCard(card);
+  assert.strictEqual(processed, true);
+
+  const host = card.querySelector('.eapc-search-card-host');
+  assert.ok(host, 'Host not mounted on .s-card');
+  const cardHtml = host.shadowRoot.innerHTML;
+
+  // Cost: $19.00 + $6.65 = $25.65
+  // With Shipping: (25.65 + 12) / 0.76 = 37.65 / 0.76 = $49.54
+  // Without Shipping: 49.539 - 9.98 = $39.56
+  assert.ok(cardHtml.includes('$49.54'), `Expected $49.54 with shipping, got: ${cardHtml}`);
+  assert.ok(cardHtml.includes('$39.56'), `Expected $39.56 without shipping, got: ${cardHtml}`);
+  assert.ok(!cardHtml.includes('Shipping unspecified'), 'Unexpected warning: Shipping unspecified should NOT be present');
+
+  processor.teardown();
+  mockBody.removeChild(card);
+});
+
 Promise.all(testPromises).then(() => {
   console.log(`\nSearch Grid Test Run Complete: ${passedTests}/${totalTests} Passed.\n`);
 });
