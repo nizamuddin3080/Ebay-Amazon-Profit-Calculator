@@ -666,6 +666,200 @@
     };
   }
 
+  /**
+   * Parses search price string which can be a single price or a price range.
+   * Handles "$205.00", "$80.97 to $134.95", "$119.99 to $125.97", "19,99 € bis 29,99 €", etc.
+   */
+  function parseSearchPrice(rawPriceStr) {
+    if (!rawPriceStr || typeof rawPriceStr !== 'string') {
+      return {
+        isRange: false,
+        min: null,
+        max: null,
+        currency: null,
+        currencyState: CURRENCY_STATE.UNKNOWN_CURRENCY,
+        error: 'Empty or invalid price string'
+      };
+    }
+
+    const trimmed = rawPriceStr.trim();
+    if (!trimmed) {
+      return {
+        isRange: false,
+        min: null,
+        max: null,
+        currency: null,
+        currencyState: CURRENCY_STATE.UNKNOWN_CURRENCY,
+        error: 'Empty price string'
+      };
+    }
+
+    // Split on range indicators: "to", "bis", "à", or dashes ("-", "–", "—") surrounded by spaces or digits
+    const rangeRegex = /\s+(?:to|bis|à)\s+|\s*[-–—]\s*/i;
+    const parts = trimmed.split(rangeRegex);
+
+    if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
+      const minParsed = parseNormalizedPrice(parts[0]);
+      const maxParsed = parseNormalizedPrice(parts[1]);
+
+      if (minParsed.value !== null && maxParsed.value !== null) {
+        const minVal = Math.min(minParsed.value, maxParsed.value);
+        const maxVal = Math.max(minParsed.value, maxParsed.value);
+        const currency = minParsed.currency || maxParsed.currency || 'USD';
+        const currencyState = (minParsed.currencyState === CURRENCY_STATE.KNOWN || maxParsed.currencyState === CURRENCY_STATE.KNOWN)
+          ? CURRENCY_STATE.KNOWN
+          : CURRENCY_STATE.UNKNOWN_CURRENCY;
+
+        return {
+          isRange: true,
+          min: minVal,
+          max: maxVal,
+          currency,
+          currencyState,
+          raw: trimmed,
+          error: null
+        };
+      }
+    }
+
+    // Single price parsing
+    const singleParsed = parseNormalizedPrice(trimmed);
+    if (singleParsed.value !== null) {
+      return {
+        isRange: false,
+        min: singleParsed.value,
+        max: singleParsed.value,
+        currency: singleParsed.currency || 'USD',
+        currencyState: singleParsed.currencyState,
+        raw: trimmed,
+        error: null
+      };
+    }
+
+    return {
+      isRange: false,
+      min: null,
+      max: null,
+      currency: singleParsed.currency || null,
+      currencyState: singleParsed.currencyState,
+      raw: trimmed,
+      error: singleParsed.error || 'Failed to parse search price'
+    };
+  }
+
+  /**
+   * Extracts product card details from an eBay search / browse card (.s-item, .b-list__item).
+   */
+  function extractSearchCardData(cardEl) {
+    if (!cardEl || !cardEl.querySelector) {
+      return { success: false, reason: 'Invalid card element' };
+    }
+
+    // 1. Skip dummy / header / placeholder items (e.g. "Shop on eBay")
+    const linkEl = cardEl.querySelector('a.s-item__link, a[href*="/itm/"]');
+    if (!linkEl || !linkEl.href || linkEl.getAttribute('href') === '#') {
+      return { success: false, reason: 'Placeholder card without valid link' };
+    }
+
+    // 2. Extract and sanitize title
+    const titleEl = cardEl.querySelector('.s-item__title, [role="heading"]');
+    let rawTitle = titleEl ? titleEl.textContent.trim() : '';
+    // Strip eBay's "New Listing" badge text if prefixed
+    rawTitle = rawTitle.replace(/^New\s+Listing\s*/i, '').trim();
+    rawTitle = decodeHtmlEntities(rawTitle);
+
+    if (!rawTitle || rawTitle.toLowerCase() === 'shop on ebay') {
+      return { success: false, reason: 'Placeholder card with Shop on eBay title' };
+    }
+
+    // 3. Extract and parse price
+    const priceEl = cardEl.querySelector('.s-item__price');
+    if (!priceEl) {
+      return { success: false, reason: 'Price element not found' };
+    }
+
+    let rawPrice = '';
+    if (typeof priceEl.cloneNode === 'function') {
+      const clone = priceEl.cloneNode(true);
+      const strikes = clone.querySelectorAll ? clone.querySelectorAll('.STRIKETHROUGH, .s-item__strike, .s-item__trending-price') : [];
+      if (strikes && strikes.forEach) strikes.forEach(s => s.remove());
+      rawPrice = clone.textContent.trim();
+    } else {
+      rawPrice = priceEl.textContent ? priceEl.textContent.trim() : '';
+    }
+
+    const priceData = parseSearchPrice(rawPrice);
+    if (!priceData || priceData.min === null) {
+      return { success: false, reason: 'Failed to parse price', rawPrice };
+    }
+
+    // 4. Extract and parse shipping
+    const shippingEl = cardEl.querySelector('.s-item__shipping, .s-item__logisticsCost, .s-item__delivery, .s-item__freeXDays, .s-item__deliveryOptions, .s-item__details .s-item__shipping');
+    const rawShipping = shippingEl ? shippingEl.textContent.trim() : '';
+    const shippingInfo = parseShipping(rawShipping);
+
+    // 5. Item ID and canonical URL
+    const url = linkEl.href;
+    const itemId = extractItemId(null, url);
+
+    return {
+      success: true,
+      title: rawTitle,
+      priceData,
+      shippingInfo,
+      url,
+      itemId,
+      cardElement: cardEl
+    };
+  }
+
+  /**
+   * Determines if current page is an eBay search results or catalog/browse page.
+   */
+  function isSearchOrBrowsePage(url, doc) {
+    const checkUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+
+    if (checkUrl) {
+      const isSearchUrl = /\/sch\/(?:i\.html)?/i.test(checkUrl) ||
+                          /\/b\/(?:[^\/]+\/)?\d+/i.test(checkUrl) ||
+                          /\/str\//i.test(checkUrl) ||
+                          /\/clp\//i.test(checkUrl) ||
+                          /[?&]_nkw=/i.test(checkUrl);
+      if (isSearchUrl) return true;
+    }
+
+    const activeDoc = doc || (typeof document !== 'undefined' ? document : null);
+    if (activeDoc && activeDoc.querySelector) {
+      if (activeDoc.querySelector('.srp-results, .srp-river-results, #srp-river-results, .b-list__items_container, #mainContent .s-item')) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Determines if current page is a single eBay item detail page.
+   */
+  function isItemPage(url, doc) {
+    const checkUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+
+    if (checkUrl) {
+      if (/\/itm\/(?:[^\/]+\/)?\d+/i.test(checkUrl)) {
+        return true;
+      }
+    }
+
+    const activeDoc = doc || (typeof document !== 'undefined' ? document : null);
+    if (activeDoc && activeDoc.querySelector) {
+      if (activeDoc.querySelector('#mainContent [data-testid="x-price-primary"], .x-price-primary, #prcIsum')) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   return {
     SHIPPING_STATE,
     CURRENCY_STATE,
@@ -678,6 +872,10 @@
     extractFromMetaTags,
     extractFromRegexFallback,
     extractProductDetails,
-    createVariationObserver
+    createVariationObserver,
+    parseSearchPrice,
+    extractSearchCardData,
+    isSearchOrBrowsePage,
+    isItemPage
   };
 });

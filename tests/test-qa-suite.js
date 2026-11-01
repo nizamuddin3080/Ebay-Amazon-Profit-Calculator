@@ -330,14 +330,17 @@ runTest('TC-24: Rapid Dynamic Variation Changes (Debounce Trailing Execution)', 
   }, 25);
 });
 
-runTest('TC-25: Non-eBay Match Verification', () => {
+runTest('TC-25: eBay Domain & Page Match Verification', () => {
   const manifestRaw = fs.readFileSync(path.join(rootDir, 'manifest.json'), 'utf8');
   const manifest = JSON.parse(manifestRaw);
   const matches = manifest.content_scripts[0].matches;
 
   for (const m of matches) {
     assert.ok(m.includes('ebay.'), `Pattern ${m} is not restricted to eBay domains`);
-    assert.ok(m.includes('/itm/*'), `Pattern ${m} does not restrict to /itm/* item pages`);
+    assert.ok(
+      m.includes('/itm/*') || m.includes('/sch/*') || m.includes('/b/*') || m.includes('/str/*') || m.includes('/clp/*'),
+      `Pattern ${m} does not restrict to recognized eBay product or search pages`
+    );
   }
 });
 

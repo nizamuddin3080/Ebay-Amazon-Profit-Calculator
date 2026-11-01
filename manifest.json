@@ -13,16 +13,37 @@
     {
       "matches": [
         "*://*.ebay.com/itm/*",
+        "*://*.ebay.com/sch/*",
+        "*://*.ebay.com/b/*",
+        "*://*.ebay.com/str/*",
+        "*://*.ebay.com/clp/*",
         "*://*.ebay.co.uk/itm/*",
+        "*://*.ebay.co.uk/sch/*",
+        "*://*.ebay.co.uk/b/*",
+        "*://*.ebay.co.uk/str/*",
+        "*://*.ebay.co.uk/clp/*",
         "*://*.ebay.ca/itm/*",
+        "*://*.ebay.ca/sch/*",
+        "*://*.ebay.ca/b/*",
+        "*://*.ebay.ca/str/*",
+        "*://*.ebay.ca/clp/*",
         "*://*.ebay.com.au/itm/*",
-        "*://*.ebay.de/itm/*"
+        "*://*.ebay.com.au/sch/*",
+        "*://*.ebay.com.au/b/*",
+        "*://*.ebay.com.au/str/*",
+        "*://*.ebay.com.au/clp/*",
+        "*://*.ebay.de/itm/*",
+        "*://*.ebay.de/sch/*",
+        "*://*.ebay.de/b/*",
+        "*://*.ebay.de/str/*",
+        "*://*.ebay.de/clp/*"
       ],
       "js": [
         "utils/calculator-engine.js",
         "utils/ebay-parser.js",
         "utils/storage.js",
         "calculator.js",
+        "search-calculator.js",
         "content.js"
       ],
       "run_at": "document_idle"

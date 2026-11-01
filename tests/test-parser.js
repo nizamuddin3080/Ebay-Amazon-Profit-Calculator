@@ -313,4 +313,92 @@ runTest('Real-World Disambiguation: Bulova Wilton ($8.72 shipping with "2-4 days
   assert.strictEqual(result.data.shippingCost, 8.72);
 });
 
+// 14. Search Price Range Parsing
+runTest('Search Price Parsing: Single and Range formats', () => {
+  // Single prices
+  const s1 = EbayParser.parseSearchPrice('$205.00');
+  assert.strictEqual(s1.isRange, false);
+  assert.strictEqual(s1.min, 205.00);
+  assert.strictEqual(s1.max, 205.00);
+  assert.strictEqual(s1.currency, 'USD');
+
+  const s2 = EbayParser.parseSearchPrice('US $97.97');
+  assert.strictEqual(s2.isRange, false);
+  assert.strictEqual(s2.min, 97.97);
+
+  // Range with "to"
+  const r1 = EbayParser.parseSearchPrice('$80.97 to $134.95');
+  assert.strictEqual(r1.isRange, true);
+  assert.strictEqual(r1.min, 80.97);
+  assert.strictEqual(r1.max, 134.95);
+  assert.strictEqual(r1.currency, 'USD');
+
+  const r2 = EbayParser.parseSearchPrice('$119.99 to $125.97');
+  assert.strictEqual(r2.isRange, true);
+  assert.strictEqual(r2.min, 119.99);
+  assert.strictEqual(r2.max, 125.97);
+
+  // Range with dashes and other languages
+  const r3 = EbayParser.parseSearchPrice('$20.00 - $35.00');
+  assert.strictEqual(r3.isRange, true);
+  assert.strictEqual(r3.min, 20.00);
+  assert.strictEqual(r3.max, 35.00);
+
+  const r4 = EbayParser.parseSearchPrice('19,99 € bis 29,99 €');
+  assert.strictEqual(r4.isRange, true);
+  assert.strictEqual(r4.min, 19.99);
+  assert.strictEqual(r4.max, 29.99);
+  assert.strictEqual(r4.currency, 'EUR');
+
+  // Invalid
+  const inv = EbayParser.parseSearchPrice('Not A Price');
+  assert.strictEqual(inv.min, null);
+});
+
+// 15. Search Card Data Extraction
+runTest('Search Card Data Extraction: Valid and Placeholder handling', () => {
+  // Valid search item
+  const validMockCard = {
+    querySelector: (sel) => {
+      if (sel.includes('link')) return { href: 'https://www.ebay.com/itm/334455667788', getAttribute: () => 'https://www.ebay.com/itm/334455667788' };
+      if (sel.includes('title')) return { textContent: 'Caterpillar Men Invader Mid Vent Composite Toe Work Boot Shoes' };
+      if (sel.includes('price')) return { textContent: '$80.97 to $134.95', cloneNode: () => ({ textContent: '$80.97 to $134.95', querySelectorAll: () => [] }) };
+      if (sel.includes('shipping') || sel.includes('delivery')) return { textContent: 'Free delivery' };
+      return null;
+    }
+  };
+
+  const cardData = EbayParser.extractSearchCardData(validMockCard);
+  assert.strictEqual(cardData.success, true);
+  assert.strictEqual(cardData.title, 'Caterpillar Men Invader Mid Vent Composite Toe Work Boot Shoes');
+  assert.strictEqual(cardData.priceData.isRange, true);
+  assert.strictEqual(cardData.priceData.min, 80.97);
+  assert.strictEqual(cardData.priceData.max, 134.95);
+  assert.strictEqual(cardData.shippingInfo.state, EbayParser.SHIPPING_STATE.FREE);
+  assert.strictEqual(cardData.shippingInfo.value, 0.0);
+  assert.strictEqual(cardData.itemId, '334455667788');
+
+  // Dummy header card ("Shop on eBay" / href="#")
+  const placeholderCard = {
+    querySelector: (sel) => {
+      if (sel.includes('link')) return { href: '#', getAttribute: () => '#' };
+      return null;
+    }
+  };
+  const dummyResult = EbayParser.extractSearchCardData(placeholderCard);
+  assert.strictEqual(dummyResult.success, false);
+});
+
+// 16. Page Type Detection (Search/Browse vs Item)
+runTest('Page Type Detection: isSearchOrBrowsePage and isItemPage', () => {
+  assert.strictEqual(EbayParser.isSearchOrBrowsePage('https://www.ebay.com/sch/i.html?_nkw=boots'), true);
+  assert.strictEqual(EbayParser.isSearchOrBrowsePage('https://www.ebay.com/b/Mens-Boots/11498/bn_57788'), true);
+  assert.strictEqual(EbayParser.isSearchOrBrowsePage('https://www.ebay.com/str/workbootsdirect'), true);
+  assert.strictEqual(EbayParser.isSearchOrBrowsePage('https://www.ebay.com/itm/123456789012'), false);
+
+  assert.strictEqual(EbayParser.isItemPage('https://www.ebay.com/itm/123456789012'), true);
+  assert.strictEqual(EbayParser.isItemPage('https://www.ebay.com/itm/Georgia-Boot/123456789012?_trksid=p2047675'), true);
+  assert.strictEqual(EbayParser.isItemPage('https://www.ebay.com/sch/i.html?_nkw=boots'), false);
+});
+
 console.log(`\nParser Test Run Complete: ${passedTests}/${totalTests} Passed.\n`);

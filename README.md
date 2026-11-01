@@ -3,7 +3,7 @@
 <div align="center">
 
 [![Manifest V3](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white)](manifest.json)
-[![Tests Passing](https://img.shields.io/badge/Tests-64%2F64%20Passing-10B981?logo=node.js&logoColor=white)](tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-75%2F75%20Passing-10B981?logo=node.js&logoColor=white)](tests/)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-0%20(Pure%20Vanilla%20JS)-3B82F6)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](LICENSE)
 [![Platform: Chromium](https://img.shields.io/badge/Platform-Chromium%20%7C%20Edge%20%7C%20Brave-9333EA)](manifest.json)
@@ -97,6 +97,13 @@ Computes exact selling prices using unrounded IEEE 754 double-precision arithmet
 - Dedicated **[COPY PRICE]** buttons on both price cards.
 - Primary execution via `navigator.clipboard.writeText` with transparent `document.execCommand('copy')` fallback.
 - Emerald confirmation toast on verified success; rose error toast on failure. Zero false-positive "Copied!" feedback.
+
+### 🛍️ 8. Multi-Product Search & Catalog Grid Calculations
+- **Inline Shadow DOM Cards:** Injects inline calculation cards directly onto every product card in eBay search results (`/sch/*`), category browse pages (`/b/*`), store pages (`/str/*`), and landing pages (`/clp/*`).
+- **Single & Price Range Support:** Automatically handles single prices (e.g. `$205.00` $\implies$ `$285.53`) and price ranges (e.g. `$80.97 to $134.95` $\implies$ `$122.33 – $193.36`).
+- **1-Click Copy Buttons:** Direct copy actions for Amazon prices embedded inside each card with affirmative visual feedback (`✓ Copied!`) and click propagation stoppage.
+- **Dynamic Mutation Monitoring:** Automatically calculates newly loaded items during infinite scroll, AJAX pagination, and sidebar filter adjustments.
+- **Floating Status & Settings Pill:** Non-intrusive floating status bar in bottom-right corner displaying calculated product count (`⚡ EAPC: X items`), current commission/target profit, and instant settings shortcut.
 
 ---
 
@@ -289,6 +296,7 @@ node tests/test-calculator.js
 node tests/test-parser.js
 node tests/test-calculator-ui.js
 node tests/test-storage.js
+node tests/test-search-calculator.js
 node tests/test-integration.js
 node tests/test-qa-suite.js
 ```
@@ -298,11 +306,12 @@ node tests/test-qa-suite.js
 | Test Suite | File | Tests | Coverage Scope |
 | :--- | :--- | :---: | :--- |
 | **Calculation Engine** | [`tests/test-calculator.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-calculator.js) | 12 | Mathematical formulas, rate normalization, zero cost, bounds |
-| **eBay Parser** | [`tests/test-parser.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-parser.js) | 12 | JSON-LD, DOM fallback, currency parsing, 3-state shipping |
+| **eBay Parser** | [`tests/test-parser.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-parser.js) | 16 | JSON-LD, DOM fallback, currency parsing, 3-state shipping, search prices/ranges |
 | **Calculator UI** | [`tests/test-calculator-ui.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-calculator-ui.js) | 7 | Shadow DOM mount, price cards, minimize pill, manual badges |
 | **Storage Adapter** | [`tests/test-storage.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-storage.js) | 7 | Default schema, validation, cross-tab sync, reset-to-defaults |
+| **Search Grid Calculator** | [`tests/test-search-calculator.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-search-calculator.js) | 9 | Multi-card injection, range pricing, idempotency, clipboard copy, status pill |
 | **Integration** | [`tests/test-integration.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-integration.js) | 4 | Singleton guard, controller pipeline, variant update, SPA teardown |
-| **QA E2E Suite** | [`tests/test-qa-suite.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-qa-suite.js) | 22 | TC-01 to TC-25, 50-cycle variant stress test, security audit |
+| **QA E2E Suite** | [`tests/test-qa-suite.js`](file:///c:/Users/h/Music/Chrome%20Extensions/EbayAmazonProfitCalculator/tests/test-qa-suite.js) | 20 | TC-01 to TC-25, 50-cycle variant stress test, security audit |
 
 ### Comprehensive Specification Matrix (TC-01 through TC-25)
 
@@ -336,6 +345,7 @@ EbayAmazonProfitCalculator/
 ├── background.js              # Background service worker & navigation router
 ├── content.js                 # Master content script coordinator
 ├── calculator.js              # Floating calculator UI controller & Shadow DOM mounting
+├── search-calculator.js       # Search & catalog grid calculator engine
 ├── styles.css                 # Encapsulated Shadow DOM stylesheet (scoped via :host)
 │
 ├── icons/                     # Extension branding icons

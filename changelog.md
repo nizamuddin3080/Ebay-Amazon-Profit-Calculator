@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.1.0] - 2026-11-01
+
+### Added
+- **Multi-Product Search & Catalog Grid Support (`search-calculator.js`):**
+  - **Inline Shadow DOM Injection:** Automatically mounts compact, dark-themed Amazon calculation cards directly inside each `.s-item` card across eBay search results (`/sch/*`), category browse pages (`/b/*`), store pages (`/str/*`), and landing pages (`/clp/*`).
+  - **Single & Range Price Calculations:** Computes exact Amazon Selling Price With Shipping, Without Shipping, and Net Profit for single prices (e.g. `$205.00` -> `$285.53`) and price ranges (e.g. `$80.97 to $134.95` -> `$122.33 – $193.36`).
+  - **1-Click Copy Buttons:** Direct copy actions for Amazon prices embedded inside each card with affirmative visual feedback (`✓ Copied!`) and click propagation stoppage to prevent accidental product link navigation.
+  - **Dynamic Results Monitoring (`MutationObserver`):** Automatically scans and calculates dynamically added items during infinite scroll, AJAX pagination, and sidebar filter adjustments.
+  - **Floating Status & Settings Pill:** Non-intrusive floating status bar in bottom-right corner displaying calculated product count (`⚡ EAPC: X items`), current commission/target profit, and instant settings shortcut.
+  - **Master Page Coordinator (`content.js`):** Seamless automatic routing between Single Item Mode (`/itm/*` floating calculator) and Search/Catalog Mode (`/sch/*`, `/b/*` search grid processor) with clean lifecycle teardown.
+  - **Expanded Manifest V3 Matches:** Configured match patterns across US, UK, Canada, Australia, and Germany eBay domains.
+  - **Automated Test Suite Expansion:** Added `tests/test-search-calculator.js` covering single/range calculations, dummy card filtering, reactive settings updates, clipboard copy actions, and lifecycle teardown (75/75 tests passing).
+
+---
+
 ## [1.0.0] - 2026-11-01
 
 ### Added

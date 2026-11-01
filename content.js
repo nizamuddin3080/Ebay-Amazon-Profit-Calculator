@@ -1,42 +1,44 @@
 /**
- * eBay to Amazon Profit Calculator - Content Script Master Controller
+ * eBay to Amazon Profit Calculator - Content Script Master Coordinator
  * 
  * Orchestrates:
- * - Multi-tier eBay product extraction (EbayParser)
- * - Reverse-margin calculation engine (CalculatorEngine)
- * - Shadow DOM floating calculator UI (ProfitCalculatorUI)
+ * - Dynamic page routing: Item Pages (/itm/*) vs Search / Catalog Pages (/sch/*, /b/*, /str/*)
+ * - Single-item floating calculator UI (ProfitCalculatorUI)
+ * - Multi-item grid calculation injection (SearchGridProcessor)
  * - Persistent storage & reactive cross-tab synchronization (StorageManager)
  * - Targeted dynamic variation mutation monitoring
- * - SPA navigation tracking and lifecycle teardown
+ * - SPA navigation tracking and comprehensive lifecycle teardown
  */
 
 (function () {
   'use strict';
 
-  // TASK-6.2: Single-Instance Verification Guard
+  // Single-Instance Verification Guard
   if (window._eapcMasterControllerActive) {
     return;
   }
   window._eapcMasterControllerActive = true;
 
-  class MasterController {
-    constructor() {
+  /**
+   * Controller for single-item product detail pages (/itm/*).
+   */
+  class ItemPageController {
+    constructor(router) {
+      this.router = router;
       this.ui = null;
       this.currentSettings = null;
       this.currentDetails = null;
       this.activeItemId = null;
       this.variationObserver = null;
-      this.urlPollTimer = null;
-      this.headObserver = null;
       this.unsubscribeStorage = null;
     }
 
     /**
-     * Bootstraps the controller on page load.
+     * Bootstraps the controller on item page load.
      */
     async init() {
       try {
-        // 1. Load active settings from storage (or defaults)
+        // 1. Load active settings from storage
         this.currentSettings = await window.StorageManager.getSettings();
 
         // 2. Initialize and mount Floating UI inside Shadow DOM
@@ -57,16 +59,13 @@
 
         // 4. Initial extraction & calculation
         this.processCurrentPage();
-
-        // 5. Setup SPA navigation detection & lifecycle teardown
-        this.initSPANavigation();
       } catch (err) {
-        console.error('[EAPC Controller] Initialization error:', err);
+        console.error('[EAPC Item Controller] Initialization error:', err);
       }
     }
 
     /**
-     * Extracts details for the current page and updates UI.
+     * Extracts details for the current item page and updates UI.
      */
     processCurrentPage() {
       const extracted = window.EbayParser.extractProductDetails(document, window.location.href);
@@ -76,7 +75,6 @@
       if (extracted.success && extracted.data) {
         this.currentDetails = extracted.data;
       } else {
-        // Partial extraction fallback
         this.currentDetails = {
           title: (extracted.data && extracted.data.title) || document.title || 'eBay Item',
           price: extracted.data ? extracted.data.price : null,
@@ -98,12 +96,10 @@
 
       const manual = this.ui.manualOverride;
 
-      // Determine effective price
       const effectivePrice = manual.price.isOverridden
         ? manual.price.value
         : this.currentDetails.price;
 
-      // Determine effective shipping
       let effectiveShipping = 0.0;
       let isShippingValid = false;
 
@@ -117,13 +113,11 @@
         effectiveShipping = this.currentDetails.shippingCost;
         isShippingValid = true;
       } else {
-        // UNKNOWN shipping
         isShippingValid = false;
       }
 
       let calcResult = null;
 
-      // Only calculate if both price and shipping are valid
       if (effectivePrice !== null && Number.isFinite(effectivePrice) && isShippingValid) {
         const totalProductCost = effectivePrice + effectiveShipping;
 
@@ -136,7 +130,6 @@
         });
       }
 
-      // Update Floating Calculator UI
       this.ui.update(this.currentDetails, this.currentSettings, calcResult);
     }
 
@@ -152,12 +145,10 @@
       this.variationObserver = window.EbayParser.createVariationObserver(document, (updatedDetails) => {
         if (!updatedDetails) return;
 
-        // If price is not manually overridden, update price
         if (!this.ui.manualOverride.price.isOverridden && updatedDetails.price !== null) {
           this.currentDetails.price = updatedDetails.price;
         }
 
-        // If shipping is not manually overridden, update shipping
         if (!this.ui.manualOverride.shipping.isOverridden) {
           this.currentDetails.shippingState = updatedDetails.shippingState;
           this.currentDetails.shippingCost = updatedDetails.shippingCost;
@@ -167,23 +158,14 @@
       }, 250);
     }
 
-    /**
-     * Handles user manual editing of the price field.
-     */
     handleManualPrice(val, isManual) {
       this.recalculateAndUpdateUI();
     }
 
-    /**
-     * Handles user manual editing of the shipping field.
-     */
     handleManualShipping(val, isManual) {
       this.recalculateAndUpdateUI();
     }
 
-    /**
-     * Re-detects price from DOM on reset action.
-     */
     handlePriceReset() {
       const extracted = window.EbayParser.extractProductDetails(document, window.location.href);
       if (extracted.success && extracted.data) {
@@ -192,9 +174,6 @@
       this.recalculateAndUpdateUI();
     }
 
-    /**
-     * Re-detects shipping from DOM on reset action.
-     */
     handleShippingReset() {
       const extracted = window.EbayParser.extractProductDetails(document, window.location.href);
       if (extracted.success && extracted.data) {
@@ -204,64 +183,21 @@
       this.recalculateAndUpdateUI();
     }
 
-    /**
-     * Multi-Strategy SPA Navigation & Lifecycle Teardown.
-     */
-    initSPANavigation() {
-      const checkNavigation = () => {
-        const newItemId = window.EbayParser.extractItemId(document, window.location.href);
-        if (newItemId && newItemId !== this.activeItemId) {
-          this.handleItemNavigation(newItemId);
-        }
-      };
-
-      // 1. Window popstate & hashchange
-      window.addEventListener('popstate', checkNavigation);
-      window.addEventListener('hashchange', checkNavigation);
-
-      // 2. Observer on <head> observing title & canonical link
-      if (document.head) {
-        this.headObserver = new MutationObserver(checkNavigation);
-        this.headObserver.observe(document.head, { childList: true, subtree: true, characterData: true });
-      }
-
-      // 3. Lightweight 500ms URL polling fallback
-      this.urlPollTimer = setInterval(checkNavigation, 500);
-
-      // 4. Runtime message listener from service worker
-      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
-        chrome.runtime.onMessage.addListener((msg) => {
-          if (msg && msg.type === 'EBAY_SPA_NAVIGATED') {
-            checkNavigation();
-          }
-        });
-      }
-    }
-
-    /**
-     * Executes full teardown and re-initializes on new Item ID.
-     */
     handleItemNavigation(newItemId) {
-      console.log(`[EAPC Controller] Navigated to new Item ID: ${newItemId} (Old: ${this.activeItemId})`);
+      console.log(`[EAPC Item Controller] Navigated to new Item ID: ${newItemId} (Old: ${this.activeItemId})`);
 
-      // 1. Disconnect variation observer
       if (this.variationObserver) {
         this.variationObserver.disconnect();
         this.variationObserver = null;
       }
 
-      // 2. Reset manual overrides in UI
       if (this.ui) {
         this.ui.resetOverridesForNewItem();
       }
 
-      // 3. Process new page
       this.processCurrentPage();
     }
 
-    /**
-     * Opens extension settings page.
-     */
     openSettings() {
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
         chrome.runtime.sendMessage({ type: 'OPEN_SETTINGS' });
@@ -269,9 +205,132 @@
         window.open('settings/settings.html', '_blank');
       }
     }
+
+    teardown() {
+      if (this.variationObserver) {
+        this.variationObserver.disconnect();
+        this.variationObserver = null;
+      }
+
+      if (typeof this.unsubscribeStorage === 'function') {
+        this.unsubscribeStorage();
+        this.unsubscribeStorage = null;
+      }
+
+      if (this.ui) {
+        this.ui.close();
+        this.ui = null;
+      }
+    }
   }
 
-  // Launch Master Controller on document_idle
-  const controller = new MasterController();
-  controller.init();
+  /**
+   * Master Page Router & Coordinator
+   * Directs execution to ItemPageController or SearchGridProcessor based on current URL & DOM.
+   */
+  class PageCoordinator {
+    constructor() {
+      this.itemController = null;
+      this.searchProcessor = null;
+      this.currentMode = null; // 'ITEM' | 'SEARCH' | null
+      this.urlPollTimer = null;
+      this.headObserver = null;
+      this.lastProcessedUrl = '';
+    }
+
+    init() {
+      this.route();
+      this.initSPANavigation();
+    }
+
+    /**
+     * Determines current page mode and manages transitions.
+     */
+    route() {
+      const currentUrl = window.location.href;
+      const isItem = window.EbayParser.isItemPage(currentUrl, document);
+      const isSearch = !isItem && window.EbayParser.isSearchOrBrowsePage(currentUrl, document);
+
+      if (isItem) {
+        // Transition to Item Mode
+        if (this.currentMode === 'SEARCH' && this.searchProcessor) {
+          this.searchProcessor.teardown();
+          this.searchProcessor = null;
+        }
+
+        if (this.currentMode !== 'ITEM' || !this.itemController) {
+          this.currentMode = 'ITEM';
+          this.itemController = new ItemPageController(this);
+          this.itemController.init();
+        } else {
+          // Already in Item mode; verify if Item ID changed
+          const newItemId = window.EbayParser.extractItemId(document, currentUrl);
+          if (newItemId && newItemId !== this.itemController.activeItemId) {
+            this.itemController.handleItemNavigation(newItemId);
+          }
+        }
+      } else if (isSearch) {
+        // Transition to Search/Catalog Mode
+        if (this.currentMode === 'ITEM' && this.itemController) {
+          this.itemController.teardown();
+          this.itemController = null;
+        }
+
+        if (this.currentMode !== 'SEARCH' || !this.searchProcessor) {
+          this.currentMode = 'SEARCH';
+          this.searchProcessor = new window.SearchGridProcessor();
+          this.searchProcessor.init();
+        } else {
+          // Already in Search mode; rescan new cards
+          this.searchProcessor.processAllCards();
+        }
+      } else {
+        // Neither search nor item page (e.g. eBay account, messages)
+        if (this.itemController) {
+          this.itemController.teardown();
+          this.itemController = null;
+        }
+        if (this.searchProcessor) {
+          this.searchProcessor.teardown();
+          this.searchProcessor = null;
+        }
+        this.currentMode = null;
+      }
+
+      this.lastProcessedUrl = currentUrl;
+    }
+
+    /**
+     * Multi-Strategy SPA Navigation detection.
+     */
+    initSPANavigation() {
+      const onNavigate = () => this.route();
+
+      window.addEventListener('popstate', onNavigate);
+      window.addEventListener('hashchange', onNavigate);
+
+      if (document.head) {
+        this.headObserver = new MutationObserver(onNavigate);
+        this.headObserver.observe(document.head, { childList: true, subtree: true, characterData: true });
+      }
+
+      this.urlPollTimer = setInterval(() => {
+        if (window.location.href !== this.lastProcessedUrl) {
+          this.route();
+        }
+      }, 500);
+
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+        chrome.runtime.onMessage.addListener((msg) => {
+          if (msg && msg.type === 'EBAY_SPA_NAVIGATED') {
+            this.route();
+          }
+        });
+      }
+    }
+  }
+
+  // Launch Coordinator on document_idle
+  const coordinator = new PageCoordinator();
+  coordinator.init();
 })();
