@@ -60,13 +60,31 @@
   ];
 
   // RegEx for Free Shipping recognition
-  const FREE_SHIPPING_REGEX = /\b(free\s*(shipping|local\s*pickup)?|fast\s*'?n\s*free|\$0(?:\.00)?)\b/i;
+  const FREE_SHIPPING_REGEX = /\b(free\s*(shipping|standard|local\s*pickup|delivery|postage)?|fast\s*['’]?n\s*free|\$0(?:\.00)?|kostenloser\s*versand|livraison\s*gratuite|spedizione\s*gratuita|envío\s*gratis)\b/i;
 
   // RegEx for Ambiguous / Missing Shipping
-  const UNKNOWN_SHIPPING_REGEX = /\b(see\s+details|contact\s+seller|freight|varies|calculate|check\s+details)\b/i;
+  const UNKNOWN_SHIPPING_REGEX = /\b(see\s+details|contact\s+seller|freight|pickup\s+only|not\s+specified|unspecified|check\s+details|varies|vidi\s+dettagli|siehe\s+details)\b/i;
+
+  // RegEx to isolate an actual formatted price within text containing words/delivery dates
+  // Matches: US $8.72, $8.72, C $12.50, AU $15.00, £3.99, 12,50 €, EUR 12.50, 19.99 USD, etc.
+  const PRICE_WITH_CURRENCY_REGEX = /(?:(?:US|C|AU|CA)\s*[\$£€¥₹]|[\$£€¥₹]|(?:USD|EUR|GBP|CAD|AUD))\s*([0-9]{1,3}(?:[,.][0-9]{3})*(?:[,.][0-9]{2})?|[0-9]+(?:[,.][0-9]{2})?)|([0-9]{1,3}(?:[,.][0-9]{3})*(?:[,.][0-9]{2})?|[0-9]+(?:[,.][0-9]{2})?)\s*(?:[\$£€¥₹]|EUR|GBP|USD|CAD|AUD)/i;
 
   // RegEx for eBay Item ID extraction
   const ITEM_ID_REGEX = /\/itm\/(?:[^\/]+\/)?(\d+)/i;
+
+  // Helper to decode HTML entities in title strings (e.g. &#039; -> ', &amp; -> &)
+  function decodeHtmlEntities(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str
+      .replace(/&#0*39;|&apos;|&#x27;/g, "'")
+      .replace(/&quot;|&#0*34;|&#x22;/g, '"')
+      .replace(/&amp;|&#0*38;|&#x26;/g, '&')
+      .replace(/&lt;|&#0*60;|&#x3c;/g, '<')
+      .replace(/&gt;|&#0*62;|&#x3e;/g, '>')
+      .replace(/&nbsp;|&#0*160;|&#xa0;/g, ' ')
+      .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  }
 
   /**
    * Identifies currency code and symbol from raw string before stripping characters.
@@ -196,6 +214,8 @@
 
   /**
    * Extracts and categorizes shipping cost into FREE, KNOWN, or UNKNOWN.
+   * Tolerates surrounding delivery transit times (e.g. "US $8.72 delivery in 2-4 days")
+   * without mistaking transit numbers like "2-4" for shipping cost.
    */
   function parseShipping(rawString) {
     if (!rawString || typeof rawString !== 'string') {
@@ -214,13 +234,32 @@
       return { state: SHIPPING_STATE.UNKNOWN, value: null, raw: trimmed };
     }
 
-    // 3. Attempt numeric parse
-    const parsed = parseNormalizedPrice(trimmed);
-    if (parsed.currencyState === CURRENCY_STATE.KNOWN && parsed.value !== null) {
-      if (parsed.value === 0) {
-        return { state: SHIPPING_STATE.FREE, value: 0.0, raw: trimmed };
+    // 3. Extract actual currency price pattern (e.g. "US $8.72 delivery in 2-4 days" -> "US $8.72")
+    const priceMatch = trimmed.match(PRICE_WITH_CURRENCY_REGEX);
+    if (priceMatch) {
+      const parsed = parseNormalizedPrice(priceMatch[0]);
+      if (parsed.currencyState === CURRENCY_STATE.KNOWN && parsed.value !== null) {
+        if (parsed.value === 0) {
+          return { state: SHIPPING_STATE.FREE, value: 0.0, raw: trimmed };
+        }
+        return { state: SHIPPING_STATE.KNOWN, value: parsed.value, raw: trimmed };
       }
-      return { state: SHIPPING_STATE.KNOWN, value: parsed.value, raw: trimmed };
+    }
+
+    // 4. Standalone pure numeric with optional currency symbol (e.g. "5.00" or "$5.00")
+    // Strictly exclude relative date/transit patterns like "2-4 days", "2-3", "2 to 4 days"
+    const isTransitOrCount = /\b\d+\s*[-–—to]+\s*\d+\s*(?:days?|business\s*days?|hours?|weeks?)|\b\d+\s*(?:people|watching|watchers|viewers|sold|left|available|returns|days)\b/i.test(trimmed);
+    if (!isTransitOrCount) {
+      const standaloneNumMatch = trimmed.match(/^(?:US\s*)?[\$£€]?\s*([0-9]+(?:[,.][0-9]{2})?)$/i);
+      if (standaloneNumMatch) {
+        const parsed = parseNormalizedPrice(trimmed);
+        if (parsed.currencyState === CURRENCY_STATE.KNOWN && parsed.value !== null) {
+          if (parsed.value === 0) {
+            return { state: SHIPPING_STATE.FREE, value: 0.0, raw: trimmed };
+          }
+          return { state: SHIPPING_STATE.KNOWN, value: parsed.value, raw: trimmed };
+        }
+      }
     }
 
     // Default fallback: Cannot determine with certainty
@@ -241,15 +280,32 @@
 
         for (const item of items) {
           if (item['@type'] === 'Product' || item['@type'] === 'ItemPage') {
-            const title = item.name || null;
+            const rawTitle = item.name || null;
+            const title = decodeHtmlEntities(rawTitle);
             let price = null;
             let currency = null;
+            let shipping = null;
 
             if (item.offers) {
               const offer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
               if (offer && offer.price !== undefined) {
                 price = parseFloat(offer.price);
                 currency = offer.priceCurrency || null;
+              }
+
+              // Extract shipping details from Schema.org if available
+              if (offer && offer.shippingDetails) {
+                const sDetails = Array.isArray(offer.shippingDetails) ? offer.shippingDetails[0] : offer.shippingDetails;
+                if (sDetails && sDetails.shippingRate) {
+                  const sVal = parseFloat(sDetails.shippingRate.value);
+                  if (Number.isFinite(sVal)) {
+                    if (sVal === 0) {
+                      shipping = { state: SHIPPING_STATE.FREE, value: 0.0, raw: '0.00' };
+                    } else if (sVal > 0) {
+                      shipping = { state: SHIPPING_STATE.KNOWN, value: sVal, raw: String(sVal) };
+                    }
+                  }
+                }
               }
             }
 
@@ -258,6 +314,7 @@
                 title,
                 price,
                 currency: currency || 'USD',
+                shipping,
                 source: 'Tier 1 (JSON-LD)'
               };
             }
@@ -312,25 +369,70 @@
       const el = doc.querySelector(sel);
       if (el && el.textContent && el.textContent.trim()) {
         title = el.textContent.replace(/^(details\s+about\s*|ebay\s*item\s*#?\s*)/i, '').trim();
-        if (title.length > 3) break;
+        if (title.length > 3) {
+          title = decodeHtmlEntities(title);
+          break;
+        }
       }
     }
 
-    // Shipping Selectors
-    const shippingSelectors = [
+    // Shipping Candidate Selectors
+    // Shipping Candidate Selectors (checked in order of specificity)
+    const shippingCandidateSelectors = [
       '[data-testid="x-shipping-cost"] .ux-textspans',
+      '[data-testid="x-shipping-cost"]',
+      '.ux-labels-values--shipping .ux-labels-values__values-content',
       '.ux-labels-values--shipping .ux-textspans--BOLD',
+      '.ux-labels-values--shipping .ux-textspans',
+      '.ux-labels-values--shipping',
       '#fshippingCost',
+      '.sh-inline-shipping-cost',
       '#shippingSection'
     ];
 
+    let shippingInfo = { state: SHIPPING_STATE.UNKNOWN, value: null };
     let rawShipping = null;
-    for (const sel of shippingSelectors) {
-      const el = doc.querySelector(sel);
-      if (el && el.textContent && el.textContent.trim()) {
-        rawShipping = el.textContent.trim();
+    let fallbackUnknown = null;
+
+    for (const sel of shippingCandidateSelectors) {
+      const container = doc.querySelector(sel);
+      if (!container || !container.textContent || !container.textContent.trim()) continue;
+
+      // 1. Check child text spans first (most specific price elements)
+      if (typeof container.querySelectorAll === 'function') {
+        const childSpans = container.querySelectorAll('.ux-textspans, span');
+        for (const span of childSpans) {
+          if (!span.textContent || !span.textContent.trim()) continue;
+          const candidateText = span.textContent.trim();
+          const info = parseShipping(candidateText);
+          if (info.state === SHIPPING_STATE.KNOWN || info.state === SHIPPING_STATE.FREE) {
+            shippingInfo = info;
+            rawShipping = candidateText;
+            break;
+          }
+        }
+        if (shippingInfo.state === SHIPPING_STATE.KNOWN || shippingInfo.state === SHIPPING_STATE.FREE) {
+          break;
+        }
+      }
+
+      // 2. Check full container text
+      const fullText = container.textContent.trim();
+      const info = parseShipping(fullText);
+      if (info.state === SHIPPING_STATE.KNOWN || info.state === SHIPPING_STATE.FREE) {
+        shippingInfo = info;
+        rawShipping = fullText;
         break;
       }
+
+      if (info.state === SHIPPING_STATE.UNKNOWN && !fallbackUnknown) {
+        fallbackUnknown = { info, text: fullText };
+      }
+    }
+
+    if (shippingInfo.state === SHIPPING_STATE.UNKNOWN && fallbackUnknown) {
+      shippingInfo = fallbackUnknown.info;
+      rawShipping = fallbackUnknown.text;
     }
 
     if (!rawPrice) return null;
@@ -339,8 +441,6 @@
     if (parsedPrice.currencyState !== CURRENCY_STATE.KNOWN || parsedPrice.value === null) {
       return null;
     }
-
-    const shippingInfo = parseShipping(rawShipping);
 
     return {
       title,
@@ -447,10 +547,14 @@
     // Pipeline execution: Tier 1 -> Tier 2 -> Tier 3 -> Tier 4
     let result = extractFromJSONLD(activeDoc);
 
-    // If Tier 1 found price but shipping was missing, look up shipping from DOM
-    if (result && !result.shipping) {
+    // If Tier 1 found price but shipping was missing or UNKNOWN, look up shipping from DOM
+    if (result && (!result.shipping || result.shipping.state === SHIPPING_STATE.UNKNOWN)) {
       const domResult = extractFromDOMSelectors(activeDoc);
-      result.shipping = domResult ? domResult.shipping : { state: SHIPPING_STATE.UNKNOWN, value: null };
+      if (domResult && domResult.shipping && domResult.shipping.state !== SHIPPING_STATE.UNKNOWN) {
+        result.shipping = domResult.shipping;
+      } else if (!result.shipping) {
+        result.shipping = domResult ? domResult.shipping : { state: SHIPPING_STATE.UNKNOWN, value: null };
+      }
     }
 
     if (!result) {
@@ -489,7 +593,7 @@
       error: null,
       itemId,
       data: {
-        title: result.title || 'eBay Item',
+        title: decodeHtmlEntities(result.title || 'eBay Item'),
         price: result.price,
         currency: result.currency || 'USD',
         shippingState: shipping.state,

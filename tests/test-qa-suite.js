@@ -163,6 +163,11 @@ runTest('TC-16: Missing / Ambiguous Shipping (UNKNOWN state, never zero)', () =>
   assert.strictEqual(s.value, null);
   const requiresManualInput = s.state === EbayParser.SHIPPING_STATE.UNKNOWN;
   assert.strictEqual(requiresManualInput, true);
+
+  // Transit strings like "2-4 days" or "delivery in 2-4 days" must NEVER be parsed as $24.00
+  const sTransit = EbayParser.parseShipping('delivery in 2-4 days');
+  assert.strictEqual(sTransit.state, EbayParser.SHIPPING_STATE.UNKNOWN);
+  assert.strictEqual(sTransit.value, null);
 });
 
 runTest('TC-17: Confirmed Free Shipping (FREE state, $0.00)', () => {
@@ -171,6 +176,13 @@ runTest('TC-17: Confirmed Free Shipping (FREE state, $0.00)', () => {
   assert.strictEqual(s.value, 0.0);
   const requiresManualInput = s.state === EbayParser.SHIPPING_STATE.UNKNOWN;
   assert.strictEqual(requiresManualInput, false);
+});
+
+runTest('TC-17-B: Standard Shipping with Delivery Dates (Disambiguation)', () => {
+  // Verifies that "US $8.72 delivery in 2-4 days" parses $8.72 and does NOT capture 24.00
+  const s = EbayParser.parseShipping('US $8.72 delivery in 2-4 days');
+  assert.strictEqual(s.state, EbayParser.SHIPPING_STATE.KNOWN);
+  assert.strictEqual(s.value, 8.72);
 });
 
 runTest('TC-18 & TC-19: Dual Independent Manual Overrides', () => {

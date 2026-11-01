@@ -126,7 +126,7 @@ runTest('TC-17: Confirmed Free Shipping (FREE state)', () => {
 });
 
 // 7. Known Standard Shipping
-runTest('Known Standard Shipping ($5.00)', () => {
+runTest('Known Standard Shipping ($5.00, US $12.50, and transit date disambiguation)', () => {
   const s1 = EbayParser.parseShipping('$5.00 Standard Shipping');
   assert.strictEqual(s1.state, EbayParser.SHIPPING_STATE.KNOWN);
   assert.strictEqual(s1.value, 5.00);
@@ -134,6 +134,16 @@ runTest('Known Standard Shipping ($5.00)', () => {
   const s2 = EbayParser.parseShipping('US $12.50 Expedited');
   assert.strictEqual(s2.state, EbayParser.SHIPPING_STATE.KNOWN);
   assert.strictEqual(s2.value, 12.50);
+
+  // Real-world listing test: "US $8.72 delivery in 2-4 days" should parse 8.72 (NOT 24.00!)
+  const s3 = EbayParser.parseShipping('US $8.72 delivery in 2-4 days');
+  assert.strictEqual(s3.state, EbayParser.SHIPPING_STATE.KNOWN);
+  assert.strictEqual(s3.value, 8.72);
+
+  // Isolated delivery transit text "2-4 days" should NEVER be parsed as $24.00
+  const s4 = EbayParser.parseShipping('2-4 days');
+  assert.strictEqual(s4.state, EbayParser.SHIPPING_STATE.UNKNOWN);
+  assert.strictEqual(s4.value, null);
 });
 
 // 8. Item ID Extraction
@@ -266,6 +276,41 @@ runTest('Full Pipeline: End-to-End Extraction with Fallback', () => {
   assert.strictEqual(result.data.price, 75.50);
   assert.strictEqual(result.data.shippingState, EbayParser.SHIPPING_STATE.KNOWN);
   assert.strictEqual(result.data.shippingCost, 4.50);
+});
+
+// 13. Real-World Disambiguation: Delivery Transit Times & HTML Entities
+runTest('Real-World Disambiguation: Bulova Wilton ($8.72 shipping with "2-4 days" and HTML entity title)', () => {
+  const mockDoc = {
+    querySelectorAll: () => [],
+    querySelector: (sel) => {
+      if (sel === '[data-testid="x-price-primary"] span' || sel === '.x-price-primary .ux-textspans') {
+        return { textContent: 'US $158.28' };
+      }
+      if (sel === '.x-item-title__mainTitle .ux-textspans' || sel === 'h1.x-item-title') {
+        return { textContent: 'New Bulova Wilton Men&#039;s Chronograph Quartz Watch' };
+      }
+      if (sel === '.ux-labels-values--shipping .ux-labels-values__values-content') {
+        return {
+          textContent: 'US $8.72 delivery in 2-4 days',
+          querySelectorAll: () => [
+            { textContent: 'US $8.72' },
+            { textContent: 'delivery in 2-4 days' }
+          ]
+        };
+      }
+      if (sel === 'link[rel="canonical"]') {
+        return { href: 'https://www.ebay.com/itm/112233445566' };
+      }
+      return null;
+    }
+  };
+
+  const result = EbayParser.extractProductDetails(mockDoc);
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.data.title, "New Bulova Wilton Men's Chronograph Quartz Watch");
+  assert.strictEqual(result.data.price, 158.28);
+  assert.strictEqual(result.data.shippingState, EbayParser.SHIPPING_STATE.KNOWN);
+  assert.strictEqual(result.data.shippingCost, 8.72);
 });
 
 console.log(`\nParser Test Run Complete: ${passedTests}/${totalTests} Passed.\n`);
